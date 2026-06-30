@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=회사 매뉴얼 봇
+Comment=Kakao-style company manual chatbot
+Exec=xdg-open "%h/maybeso/index.html"
+Icon=text-html
+Terminal=false
+Categories=Utility;
