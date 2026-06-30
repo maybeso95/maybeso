@@ -31,36 +31,17 @@
     background: #a4b8cc;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     padding: 0 12px;
     border-bottom: 1px solid rgba(0,0,0,0.06);
     position: relative;
   }
-  header .left { width: 40px; }
   header .title {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
     font-size: 17px;
     font-weight: 700;
     color: #1f1f1f;
     letter-spacing: -0.2px;
   }
-  header .right {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  #settingsBtn {
-    background: transparent;
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    padding: 6px 8px;
-    line-height: 1;
-    border-radius: 8px;
-  }
-  #settingsBtn:hover { background: rgba(0,0,0,0.06); }
 
   /* Chat area */
   #chat {
@@ -204,149 +185,15 @@
     cursor: not-allowed;
   }
 
-  /* Modal */
-  #modalBackdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    padding: 16px;
-  }
-  #modalBackdrop.active { display: flex; }
-  #modal {
-    background: #fff;
-    border-radius: 14px;
-    width: 100%;
-    max-width: 420px;
-    max-height: 90vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  }
-  #modal header {
-    height: 48px;
-    background: #fff;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-  }
-  #modal header .modal-title {
-    font-size: 16px;
-    font-weight: 700;
-  }
-  #closeBtn {
-    background: transparent;
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    color: #666;
-    padding: 4px 8px;
-  }
-  .modal-body {
-    padding: 16px;
-    overflow-y: auto;
-    flex: 1;
-  }
-  .field { margin-bottom: 14px; }
-  .field label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    color: #333;
-  }
-  .field .help {
-    font-size: 11.5px;
-    color: #888;
-    margin-top: 4px;
-    line-height: 1.4;
-  }
-  .field input[type="password"],
-  .field textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 14px;
-    font-family: inherit;
-    background: #fafafa;
-    outline: none;
-  }
-  .field input[type="password"]:focus,
-  .field textarea:focus {
-    border-color: #fee500;
-    background: #fff;
-  }
-  .field textarea {
-    min-height: 180px;
-    resize: vertical;
-    line-height: 1.5;
-  }
-  .counter {
-    font-size: 11px;
-    color: #999;
-    text-align: right;
-    margin-top: 2px;
-  }
-  .modal-footer {
-    padding: 12px 16px;
-    border-top: 1px solid #eee;
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-  }
-  .btn {
-    padding: 9px 18px;
-    border-radius: 8px;
-    border: none;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .btn-primary { background: #fee500; color: #1f1f1f; }
-  .btn-primary:hover { background: #ffd900; }
-  .btn-secondary { background: #f0f0f0; color: #555; }
-  .btn-secondary:hover { background: #e5e5e5; }
-
-  .toast {
-    position: fixed;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.8);
-    color: #fff;
-    padding: 10px 18px;
-    border-radius: 20px;
-    font-size: 13px;
-    z-index: 200;
-    opacity: 0;
-    transition: opacity 0.25s;
-    pointer-events: none;
-  }
-  .toast.show { opacity: 1; }
-
   /* Scrollbar */
   #chat::-webkit-scrollbar { width: 6px; }
   #chat::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
-  .modal-body::-webkit-scrollbar { width: 6px; }
-  .modal-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <div class="left"></div>
     <div class="title">회사 매뉴얼 봇</div>
-    <div class="right">
-      <button id="settingsBtn" title="설정" aria-label="설정">⚙️</button>
-    </div>
   </header>
 
   <div id="chat">
@@ -359,115 +206,22 @@
   </form>
 </div>
 
-<div id="modalBackdrop">
-  <div id="modal">
-    <header>
-      <div class="modal-title">⚙️ 설정</div>
-      <button id="closeBtn" type="button" aria-label="닫기">✕</button>
-    </header>
-    <div class="modal-body">
-      <div class="field">
-        <label for="apiKey">Gemini API 키</label>
-        <input type="password" id="apiKey" placeholder="AI..." autocomplete="off" />
-        <div class="help">aistudio.google.com 에서 발급. 브라우저에만 저장되며 외부 서버로 전송되지 않습니다.</div>
-      </div>
-      <div class="field">
-        <label for="manual">매뉴얼 (약 1,000자)</label>
-        <textarea id="manual" placeholder="여기에 회사 매뉴얼이나 본인 정보를 자유롭게 작성하세요. 1인칭으로 써도 됩니다."></textarea>
-        <div class="counter"><span id="manualLen">0</span>자</div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" id="cancelBtn" type="button">취소</button>
-      <button class="btn btn-primary" id="saveBtn" type="button">저장</button>
-    </div>
-  </div>
-</div>
-
-<div id="toast" class="toast"></div>
-
 <script>
 (function () {
-  const STORAGE_KEY = 'kakao_manual_bot_v1';
-  const MODEL = 'gemini-2.5-flash';
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
-
   const $ = (id) => document.getElementById(id);
   const chatEl = $('chat');
   const messageEl = $('message');
   const sendBtn = $('sendBtn');
   const inputForm = $('inputbar');
-  const settingsBtn = $('settingsBtn');
-  const modalBackdrop = $('modalBackdrop');
-  const closeBtn = $('closeBtn');
-  const cancelBtn = $('cancelBtn');
-  const saveBtn = $('saveBtn');
-  const apiKeyEl = $('apiKey');
-  const manualEl = $('manual');
-  const manualLenEl = $('manualLen');
-  const toastEl = $('toast');
 
-  let state = loadState();
   let isAnswering = false;
   let typingRow = null;
 
-  // Initialize date label
   const today = new Date();
   $('todayLabel').textContent = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
 
-  // Greeting on first load
-  if (!state.apiKey || !state.manual) {
-    addBotMessage('안녕하세요! 회사 매뉴얼 봇이에요.\n오른쪽 위 ⚙️ 버튼을 눌러서 API 키와 매뉴얼을 먼저 등록해 주세요.');
-  } else {
-    addBotMessage('안녕하세요! 무엇을 도와드릴까요?');
-  }
+  addBotMessage('안녕하세요! 회사 매뉴얼 봇이에요. 궁금한 점을 물어보세요.');
 
-  // ===== Storage =====
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { apiKey: '', manual: '' };
-      return JSON.parse(raw);
-    } catch (e) {
-      return { apiKey: '', manual: '' };
-    }
-  }
-  function saveState(s) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  }
-
-  // ===== Modal =====
-  function openModal() {
-    apiKeyEl.value = state.apiKey || '';
-    manualEl.value = state.manual || '';
-    manualLenEl.textContent = (state.manual || '').length;
-    modalBackdrop.classList.add('active');
-    setTimeout(() => apiKeyEl.focus(), 50);
-  }
-  function closeModal() {
-    modalBackdrop.classList.remove('active');
-  }
-  settingsBtn.addEventListener('click', openModal);
-  closeBtn.addEventListener('click', closeModal);
-  cancelBtn.addEventListener('click', closeModal);
-  modalBackdrop.addEventListener('click', (e) => {
-    if (e.target === modalBackdrop) closeModal();
-  });
-  manualEl.addEventListener('input', () => {
-    manualLenEl.textContent = manualEl.value.length;
-  });
-  saveBtn.addEventListener('click', () => {
-    const apiKey = apiKeyEl.value.trim();
-    const manual = manualEl.value.trim();
-    if (!apiKey) { showToast('API 키를 입력해 주세요'); return; }
-    if (!manual) { showToast('매뉴얼을 입력해 주세요'); return; }
-    state = { apiKey, manual };
-    saveState(state);
-    closeModal();
-    showToast('저장되었습니다');
-  });
-
-  // ===== Chat helpers =====
   function nowHM() {
     const d = new Date();
     const ampm = d.getHours() < 12 ? '오전' : '오후';
@@ -529,14 +283,13 @@
     chatEl.scrollTop = chatEl.scrollHeight;
   }
 
-  function showToast(text) {
-    toastEl.textContent = text;
-    toastEl.classList.add('show');
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => toastEl.classList.remove('show'), 1800);
+  function removeTyping() {
+    if (typingRow && typingRow.parentNode) {
+      typingRow.parentNode.removeChild(typingRow);
+    }
+    typingRow = null;
   }
 
-  // ===== Input behavior =====
   messageEl.addEventListener('input', () => {
     messageEl.style.height = 'auto';
     messageEl.style.height = Math.min(messageEl.scrollHeight, 120) + 'px';
@@ -555,14 +308,6 @@
     const text = messageEl.value.trim();
     if (!text) return;
 
-    if (!state.apiKey || !state.manual) {
-      addUserMessage(text);
-      messageEl.value = '';
-      messageEl.style.height = 'auto';
-      addBotMessage('먼저 ⚙️ 설정에서 API 키와 매뉴얼을 등록해 주세요.');
-      return;
-    }
-
     addUserMessage(text);
     messageEl.value = '';
     messageEl.style.height = 'auto';
@@ -572,93 +317,29 @@
     typingRow = addTypingIndicator();
 
     try {
-      const reply = await askGemini(text);
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: text }),
+      });
+      const data = await res.json().catch(() => ({}));
       removeTyping();
-      addBotMessage(reply);
+      if (!res.ok) {
+        addBotMessage('오류가 발생했어요: ' + (data.error || `HTTP ${res.status}`));
+      } else if (data.reply) {
+        addBotMessage(data.reply);
+      } else {
+        addBotMessage('빈 응답을 받았어요.');
+      }
     } catch (err) {
       removeTyping();
-      const msg = (err && err.message) ? err.message : '알 수 없는 오류';
-      addBotMessage('오류가 발생했어요: ' + msg);
+      addBotMessage('네트워크 오류: ' + ((err && err.message) || '알 수 없음'));
     } finally {
       isAnswering = false;
       sendBtn.disabled = false;
       messageEl.focus();
     }
   });
-
-  function removeTyping() {
-    if (typingRow && typingRow.parentNode) {
-      typingRow.parentNode.removeChild(typingRow);
-    }
-    typingRow = null;
-  }
-
-  // ===== Gemini call =====
-  async function askGemini(userQuestion) {
-    const systemPrompt =
-`너는 사용자가 등록한 [매뉴얼]을 근거로 답변하는 한국어 챗봇이다.
-
-[매우 중요한 규칙]
-1) 매뉴얼이 1인칭(나/내/제/저)으로 쓰여 있다면, 그것은 "이 매뉴얼을 등록한 사람"의 정보다. 그 주체의 정보로 인식하고 자연스럽게 3인칭이나 적절한 표현으로 답해라. (예: 매뉴얼에 "나는 매일 아침 8시에 출근한다"라고 있으면 "네, 매일 아침 8시에 출근하십니다"처럼 답한다.)
-2) 매뉴얼에 직접 적힌 내용이 아니더라도, 매뉴얼로부터 합리적으로 유추 가능한 것은 적극적으로 답해라. 너무 보수적으로 거절하지 마라.
-3) 매뉴얼과 정말로 아무 관련이 없는 질문일 때에만 "정보를 찾을 수 없습니다"라고 답해라.
-4) 답변은 카카오톡 채팅처럼 간결하고 친근하게. 불필요한 머리말("물론입니다", "네, 알겠습니다" 같은 말)과 마크다운 기호(**, ##, - 등)는 쓰지 마라. 길어도 4~6문장 이내로.
-5) 매뉴얼에 없는 정보를 지어내지 마라.
-
-[매뉴얼]
-${state.manual}`;
-
-      const body = {
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [
-          { role: 'user', parts: [{ text: userQuestion }] }
-        ],
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 1024
-        }
-      };
-
-      const url = `${API_URL}?key=${encodeURIComponent(state.apiKey)}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-
-      if (!res.ok) {
-        let errText = `HTTP ${res.status}`;
-        try {
-          const errJson = await res.json();
-          if (errJson && errJson.error && errJson.error.message) {
-            errText = errJson.error.message;
-          }
-        } catch (_) {}
-        throw new Error(errText);
-      }
-
-      const data = await res.json();
-      const text = extractText(data);
-      if (!text) {
-        if (data && data.promptFeedback && data.promptFeedback.blockReason) {
-          throw new Error('응답이 차단되었어요 (' + data.promptFeedback.blockReason + ')');
-        }
-        throw new Error('빈 응답을 받았어요');
-      }
-      return text.trim();
-  }
-
-  function extractText(data) {
-    try {
-      const cands = data && data.candidates;
-      if (!cands || !cands.length) return '';
-      const parts = cands[0].content && cands[0].content.parts;
-      if (!parts || !parts.length) return '';
-      return parts.map(p => p.text || '').join('').trim();
-    } catch (e) {
-      return '';
-    }
-  }
 })();
 </script>
 </body>
