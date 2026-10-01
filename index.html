@@ -9,16 +9,16 @@
 <title>퐁당퐁당 나이트</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap">
 <style>
-/* Layout: 한 줄 기둥 + 하단 탭 4개(오늘/기록/레터/설정). Dark-first: 병동 야간 조명(호박색) + 수면 인디고 */
+/* Type: 굴림 (설치 안 된 폰에서는 굴림과 가까운 고운돋움). Layout: 한 줄 기둥 + 하단 탭 4개(오늘/기록/레터/설정). Dark-first: 병동 야간 조명(호박색) + 수면 인디고 */
 :root{
   --bg:#0e1320; --surface:#161d2d; --surface-2:#1d2639; --line:#2a3550;
   --fg:#e7eaf3; --muted:#8a93ab; --accent:#f0a33c; --accent-ink:#1a1206;
   --sleep:#7084e0; --nap:#9aa8ec; --ok:#5cc49a; --warn:#e3b341; --bad:#e8705a;
   --c-main:#7084e0; --c-shift:#c98424;
-  --font-body:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
-  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --font-body:"Gulim","굴림","Gowun Dodum","Dotum","돋움",sans-serif;
+  --font-mono:"GulimChe","굴림체","Gulim","굴림","Gowun Dodum",monospace;
   color-scheme:dark;
 }
 @media (prefers-color-scheme: light){
@@ -388,12 +388,6 @@ textarea{width:100%;min-height:110px;font-size:13px;line-height:1.5;resize:verti
       <div class="toggles" id="toggles"></div>
     </section>
 
-    <section class="card">
-      <h2>가족에게 일정 공유</h2>
-      <div class="hint">앞으로 7일 근무일과 자는 시간을 정리해서 보내줘. 부모님께 "이 시간엔 깨우지 말아줘"를 한 번에 전할 수 있어.</div>
-      <div class="btnrow"><button class="btn" id="shareBtn" type="button">7일 일정 공유하기</button><span class="pstatus" id="shareStatus"></span></div>
-      <textarea id="shareText" readonly hidden aria-label="공유할 일정"></textarea>
-    </section>
 
     <section class="card">
       <h2>근무 설정</h2>
@@ -510,12 +504,12 @@ function drawDial(k,nowMin){
   const c=cfg(), col={shift:'var(--accent)',sleep:'var(--sleep)',nap:'var(--nap)'}, rr={shift:R+12,sleep:R-6,nap:R-6};
   let s=`<svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg"><circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="var(--line)" stroke-width="1"/>`;
   for(let h=0;h<24;h++){ const [x1,y1]=pt(h*60,R-1),[x2,y2]=pt(h*60,R+(h%6===0?5:2)); s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--muted)" stroke-width="${h%6===0?1.4:.7}"/>`; }
-  [[0,'0'],[360,'6'],[720,'12'],[1080,'18']].forEach(([m,l])=>{ const [x,y]=pt(m,R-20); s+=`<text x="${x}" y="${y}" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="10" text-anchor="middle" dominant-baseline="central">${l}</text>`; });
+  [[0,'0'],[360,'6'],[720,'12'],[1080,'18']].forEach(([m,l])=>{ const [x,y]=pt(m,R-20); s+=`<text x="${x}" y="${y}" fill="var(--muted)" font-family="Gulim, 굴림, Gowun Dodum, sans-serif" font-size="10" text-anchor="middle" dominant-baseline="central">${l}</text>`; });
   S.blocksFor(k,c).forEach(([a,b,t])=>{ s+=`<path d="${arc(a,b,rr[t])}" fill="none" stroke="${col[t]}" stroke-width="${t==='shift'?7:9}" stroke-linecap="round"/>`; });
   S.itemsFor(k,c).forEach(it=>{ const [x,y]=pt(it.min,R); s+=`<circle cx="${x}" cy="${y}" r="2.2" fill="var(--fg)"/>`; });
   const [nx,ny]=pt(nowMin,R+20);
   s+=`<line x1="${C}" y1="${C}" x2="${nx}" y2="${ny}" stroke="var(--fg)" stroke-width="1.6" stroke-linecap="round"/><circle cx="${C}" cy="${C}" r="3.5" fill="var(--fg)"/>`;
-  s+=`<text x="${C}" y="${C+24}" fill="var(--fg)" font-family="IBM Plex Mono, monospace" font-size="15" font-weight="600" text-anchor="middle">${S.hm(nowMin)}</text></svg>`;
+  s+=`<text x="${C}" y="${C+24}" fill="var(--fg)" font-family="Gulim, 굴림, Gowun Dodum, sans-serif" font-size="15" font-weight="600" text-anchor="middle">${S.hm(nowMin)}</text></svg>`;
   $('dial').innerHTML=s;
   const tot=S.blocksFor(k,c).filter(b=>b[2]!=='shift').reduce((a,b)=>a+(b[1]-b[0]),0);
   $('sleepTotal').textContent='오늘 계획 수면 약 '+(Math.round(tot/6)/10)+'시간 (보너스 포함)';
@@ -649,7 +643,7 @@ function renderReport(){
   const y=v=>top+ch-(v/max)*ch;
   const roundTop=(x,y0,w,h,rad)=>{ if(h<=0) return ''; rad=Math.min(rad,h,w/2); return `M${x} ${y0+h}V${y0+rad}Q${x} ${y0} ${x+rad} ${y0}H${x+w-rad}Q${x+w} ${y0} ${x+w} ${y0+rad}V${y0+h}Z`; };
   let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
-  [0,4,8,12].forEach(v=>{ s+=`<line x1="${l}" x2="${W-r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1" ${v?'stroke-dasharray="2 3"':''}/><text x="${l-6}" y="${y(v)}" fill="var(--muted)" font-size="9" font-family="IBM Plex Mono, monospace" text-anchor="end" dominant-baseline="central">${v}h</text>`; });
+  [0,4,8,12].forEach(v=>{ s+=`<line x1="${l}" x2="${W-r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1" ${v?'stroke-dasharray="2 3"':''}/><text x="${l-6}" y="${y(v)}" fill="var(--muted)" font-size="9" font-family="Gulim, 굴림, Gowun Dodum, sans-serif" text-anchor="end" dominant-baseline="central">${v}h</text>`; });
   rows.forEach((rw,i)=>{
     const x=l+band*i+(band-bw)/2;
     if(rw.main!=null){
@@ -659,7 +653,7 @@ function renderReport(){
         s+=`<path d="${roundTop(x, y(rw.main)-hs, bw, hs-2, 4)}" fill="var(--c-shift)"/>`;
       } else s+=`<path d="${roundTop(x, y(rw.main), bw, hm, 4)}" fill="var(--c-main)"/>`;
     }
-    s+=`<text x="${l+band*i+band/2}" y="${H-6}" fill="${rw.d===k?'var(--fg)':'var(--muted)'}" font-size="9" font-weight="${rw.d===k?600:400}" font-family="IBM Plex Mono, monospace" text-anchor="middle">${+rw.d.slice(8,10)}</text>`;
+    s+=`<text x="${l+band*i+band/2}" y="${H-6}" fill="${rw.d===k?'var(--fg)':'var(--muted)'}" font-size="9" font-weight="${rw.d===k?600:400}" font-family="Gulim, 굴림, Gowun Dodum, sans-serif" text-anchor="middle">${+rw.d.slice(8,10)}</text>`;
     s+=`<rect class="hit" data-i="${i}" x="${l+band*i}" y="${top}" width="${band}" height="${ch+bot}" fill="transparent" style="cursor:pointer"/>`;
   });
   s+=`<line x1="${l}" x2="${W-r}" y1="${y(7)}" y2="${y(7)}" stroke="var(--muted)" stroke-width="1" opacity=".8"/><text x="${W-r}" y="${y(7)-4}" fill="var(--muted)" font-size="9" text-anchor="end">7h</text></svg>`;
@@ -779,21 +773,6 @@ function renderToggles(){
 }
 $('allOn').addEventListener('click',()=>{ store.set('muted',[]); renderToggles(); render(); sync(); });
 $('coreOnly').addEventListener('click',()=>{ store.set('muted',S.ALERT_TYPES.map(x=>x[0]).filter(id=>!S.CORE_ALERTS.includes(id))); renderToggles(); render(); sync(); });
-
-// ---------- 가족 공유 ----------
-function familyText(){
-  const c=cfg(), k=todayKey(); const lines=['[이번 주 내 근무 · 자는 시간]',''];
-  for(let i=0;i<7;i++){ const d=S.addDaysKey(k,i), dl=`${md(d)}(${WD[S.dowOf(d)]})`;
-    if(S.isWork(d,c)){ const h=S.isHolidayWork(d,c); lines.push(`${dl} 야간 근무 · ${h?'16:00':'18:50'} 출발, 다음 날 09:30쯤 귀가`); }
-    else { const w=S.WAKE[c.slept[d]||'some'][0]; lines.push(`${dl} 퇴근일 · 10:00~${w} 자는 중, 밤 23시 취침`); } }
-  lines.push('','자는 시간엔 깨우지 말아줘. 급한 일은 전화로!'); return lines.join('\n');
-}
-$('shareBtn').addEventListener('click',async()=>{
-  const text=familyText(); $('shareText').value=text; $('shareText').hidden=false;
-  try{ if(navigator.share){ await navigator.share({text}); $('shareStatus').textContent='공유 창을 열었어'; return; } }catch(e){ if(e && e.name==='AbortError') return; }
-  try{ await navigator.clipboard.writeText(text); $('shareStatus').textContent='복사했어. 카톡에 붙여넣으면 돼'; }
-  catch(e){ $('shareText').select(); $('shareStatus').textContent='아래 글을 길게 눌러 복사해줘'; }
-});
 
 // ---------- 백업 ----------
 const BK_KEYS=['log','slept','overrides','base','muted','caf','seenIssue'];
