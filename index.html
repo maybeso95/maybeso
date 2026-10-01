@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1320">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<title>퐁당퐁당 나이트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one narrow column, a 24h dial as the anchor, "지금 할 일" above everything. Dark-first: 병동 야간 조명(나트륨등 호박색) + 수면 인디고 */
+:root{
+  --bg:#0e1320; --surface:#161d2d; --surface-2:#1d2639; --line:#2a3550;
+  --fg:#e7eaf3; --muted:#8a93ab; --accent:#f0a33c; --accent-ink:#1a1206;
+  --sleep:#7084e0; --nap:#9aa8ec; --ok:#5cc49a; --warn:#e8705a;
+  --font-body:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#eef0f6; --surface:#ffffff; --surface-2:#f4f5fa; --line:#d8dce8;
+    --fg:#151a28; --muted:#5a6279; --accent:#b4680a; --accent-ink:#fff8ee;
+    --sleep:#4658bf; --nap:#7584d4; --ok:#1f8a5e; --warn:#c2462f; color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#eef0f6; --surface:#ffffff; --surface-2:#f4f5fa; --line:#d8dce8;
+  --fg:#151a28; --muted:#5a6279; --accent:#b4680a; --accent-ink:#fff8ee;
+  --sleep:#4658bf; --nap:#7584d4; --ok:#1f8a5e; --warn:#c2462f; color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;padding-top:max(20px,env(safe-area-inset-top));-webkit-tap-highlight-color:transparent;color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.6;padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{margin:0;text-wrap:balance}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.label{font-size:12px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+header h1{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.work{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.chip.off{border-color:var(--sleep);color:var(--sleep);font-weight:500}
+
+.now{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.now .cur-time{font-size:13px}
+.now .cur-title{font-size:21px;font-weight:700;line-height:1.35}
+.now .cur-desc{color:var(--muted);font-size:14px}
+.next{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:12px;border-top:1px dashed var(--line);flex-wrap:wrap}
+.next .t{min-width:0}
+.countdown{font-size:22px;color:var(--accent)}
+
+.dialrow{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:18px;align-items:center}
+@media (max-width:460px){.dialrow{grid-template-columns:1fr;justify-items:center}}
+.dial{width:100%;max-width:220px;aspect-ratio:1}
+.dial svg{width:100%;height:100%;display:block}
+.legend{display:flex;flex-direction:column;gap:8px;font-size:13px;width:100%}
+.legend div{display:flex;align-items:center;gap:8px}
+.sw{width:18px;height:6px;border-radius:3px;flex:none}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.sleepq{display:flex;flex-direction:column;gap:10px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button{font:inherit;font-size:13px;padding:9px 6px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);cursor:pointer;line-height:1.3}
+.seg button[aria-pressed="true"]{border-color:var(--sleep);background:var(--sleep);color:#fff;font-weight:700}
+
+.timeline{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.timeline li{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.timeline li:last-child{border-bottom:0}
+.timeline .tm{font-size:14px;color:var(--muted);padding-top:1px}
+.timeline .tt{font-weight:500}
+.timeline .td{font-size:13px;color:var(--muted);margin-top:2px}
+.timeline li.past{opacity:.45}
+.timeline li.current .tm{color:var(--accent)}
+.timeline li.current .tt{color:var(--accent);font-weight:700}
+.timeline li.tomorrow .tm::after{content:"+1";font-size:10px;margin-left:2px;vertical-align:super}
+.dayhead{font-size:12px;color:var(--muted);letter-spacing:.06em;padding:14px 0 4px;border-bottom:1px solid var(--line)}
+
+details{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px 16px}
+details summary{cursor:pointer;padding:12px 0;font-weight:700;list-style:none;display:flex;justify-content:space-between}
+details summary::after{content:"＋";color:var(--muted)}
+details[open] summary::after{content:"－"}
+.principles{margin:0 0 14px;padding-left:20px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.principles b{display:block}
+.principles span{color:var(--muted)}
+
+.settings{display:flex;flex-direction:column;gap:14px;padding-bottom:14px;font-size:14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+input[type="date"],select{font:inherit;font-size:14px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg)}
+.btn{font:inherit;font-size:14px;font-weight:700;padding:10px 16px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line);font-weight:500}
+.btn:focus-visible,.seg button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.alertbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.status{font-size:13px}
+.status.on{color:var(--ok)}
+
+.modal{position:fixed;inset:0;background:rgba(5,8,15,.66);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal-card{background:var(--surface);border:1px solid var(--accent);border-radius:16px;padding:22px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.modal-card .mt{font-size:13px;color:var(--accent)}
+.modal-card h3{font-size:20px;line-height:1.35}
+.modal-card p{margin:0;color:var(--muted);font-size:14px}
+@media (prefers-reduced-motion:no-preference){.modal-card{animation:pop .25s ease-out}@keyframes pop{from{transform:scale(.96);opacity:.6}to{transform:none;opacity:1}}}
+.foot{font-size:12px;color:var(--muted);text-align:center}
+[hidden]{display:none!important}
+.status.err{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="label mono" id="dateLabel">2026-10-02 (금)</div>
+      <h1>퐁당퐁당 나이트</h1>
+    </div>
+    <div class="chips" id="chips"><span class="chip off">퇴근일</span></div>
+  </header>
+
+  <section class="now" aria-live="polite">
+    <div>
+      <div class="label">지금 할 일</div>
+      <div class="cur-time mono muted" id="curTime">06:00부터</div>
+      <div class="cur-title" id="curTitle">물 줄이기 · 잠 기록</div>
+      <div class="cur-desc" id="curDesc"></div>
+    </div>
+    <div class="next">
+      <div class="t">
+        <div class="label">다음</div>
+        <div id="nextTitle">퇴근 준비 · 선글라스</div>
+        <div class="mono muted" id="nextAt" style="font-size:13px">07:50</div>
+      </div>
+      <div class="countdown mono" id="countdown">--:--</div>
+    </div>
+  </section>
+
+  <section class="dialrow">
+    <div class="dial" id="dial" role="img" aria-label="오늘 24시간 수면·근무 다이얼"></div>
+    <div class="legend">
+      <div><span class="sw" style="background:var(--accent)"></span>근무</div>
+      <div><span class="sw" style="background:var(--sleep)"></span>본 수면</div>
+      <div><span class="sw" style="background:var(--nap)"></span>보너스 잠 · 낮잠</div>
+      <div class="muted" id="sleepTotal" style="font-size:12px"></div>
+    </div>
+  </section>
+
+  <section class="card sleepq" id="sleepCard" hidden>
+    <div>
+      <div class="label">퇴근 후 수면 길이</div>
+      <div style="font-size:14px">근무 중에 얼마나 잤어? 고르면 기상 알림 시간이 바뀌어.</div>
+    </div>
+    <div class="seg" role="group" aria-label="근무 중 수면">
+      <button type="button" id="slp-good" data-v="good">3시간 이상<br><span class="mono">→ 12:00 기상</span></button>
+      <button type="button" id="slp-some" data-v="some">1~3시간<br><span class="mono">→ 13:00 기상</span></button>
+      <button type="button" id="slp-none" data-v="none">거의 못 잠<br><span class="mono">→ 13:45 기상</span></button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="label" style="margin-bottom:4px">오늘 · 내일 시간표</div>
+    <ul class="timeline" id="timeline"></ul>
+  </section>
+
+  <details>
+    <summary>지키는 원칙 4가지</summary>
+    <ol class="principles">
+      <li><b>쉬는 날 밤잠은 사수한다</b><span>23시~07시. 약속은 22시 전에 끝내고, 퇴근 후 수면은 길어도 3.5~4시간에서 끊기.</span></li>
+      <li><b>새벽 1~6시에는 식사하지 않는다</b><span>출근 전 저녁을 든든하게. 새벽엔 물, 무가당 우유, 견과류 한 줌까지만.</span></li>
+      <li><b>쉬는 날엔 운동한다</b><span>근력 2회 + 유산소 1~2회. 오후~저녁에, 자기 직전 2~3시간은 피하기.</span></li>
+      <li><b>빛을 관리한다</b><span>퇴근길 선글라스, 쉬는 날 바깥 햇빛 20~30분, 낮잠 방은 완전 암막.</span></li>
+    </ol>
+  </details>
+
+  <details id="settingsBox" open>
+    <summary>알림 · 설정</summary>
+    <div class="settings">
+      <div id="installRow" class="alertbar" hidden>
+        <button class="btn" id="installBtn" type="button">홈 화면에 앱 설치</button>
+        <span class="status muted">설치하면 아이콘으로 바로 열려</span>
+      </div>
+      <div class="alertbar">
+        <button class="btn" id="pushBtn" type="button">잠금화면 알림 켜기</button>
+        <button class="btn ghost" id="pushTest" type="button" hidden>알림 테스트</button>
+        <button class="btn ghost" id="pushOff" type="button" hidden>알림 끄기</button>
+      </div>
+      <div class="status" id="pushStatus">꺼짐 · 켜면 앱을 닫아도 시간표 알림이 와</div>
+      <div class="alertbar">
+        <button class="btn ghost" id="enableBtn" type="button">앱 안 알림음 켜기</button>
+        <button class="btn ghost" id="testBtn" type="button">팝업 미리보기</button>
+        <span class="status" id="alertStatus"></span>
+      </div>
+      <div class="row">
+        <label for="baseDate">기준 근무일 (근무 바뀌면 여기만 수정)</label>
+        <input type="date" id="baseDate" value="2026-10-01">
+      </div>
+      <div class="row">
+        <label for="todayType">오늘 근무 형태</label>
+        <select id="todayType">
+          <option value="auto">자동 (주말·공휴일 = 휴일근무)</option>
+          <option value="weekday">평일 근무 (20:30)</option>
+          <option value="holiday">휴일 근무 (17:30)</option>
+        </select>
+      </div>
+      <div class="muted" style="font-size:12px" id="syncNote">설정을 바꾸면 알림 시간도 같이 바뀌어.</div>
+    </div>
+  </details>
+
+  <div class="foot">야간 근무 D+<span class="mono" id="dplus">1</span> · 근무 중 잠은 보너스, 못 잔 날이 기본값</div>
+</div>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="modal-card">
+    <div class="mt mono" id="mTime">07:50</div>
+    <h3 id="mTitle">퇴근 준비</h3>
+    <p id="mDesc"></p>
+    <button class="btn" id="mOk" type="button">확인</button>
+  </div>
+</div>
+
+<script type="module">
+import * as S from './schedule.js';
+const FN = 'https://ikvcgxefbiyguuzbyfil.supabase.co/functions/v1/ns-push';
+const VAPID = 'BN0sWBLu1oO7NekUdCSJXUKqtk2WmvVtHztTdlYmgbIeBBUjzf5Ccymw4FNI2yJ8Vs3NtvHiMzTTCekzmEWPAh0';
+
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem('ns_'+k); return v===null?d:JSON.parse(v);}catch(e){return d;} },
+  set(k,v){ try{ localStorage.setItem('ns_'+k, JSON.stringify(v)); }catch(e){} }
+};
+const cfg = () => ({ base: store.get('base', S.DEFAULT_BASE), overrides: store.get('overrides', {}), slept: store.get('slept', {}) });
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const WD = ['일','월','화','수','목','금','토'];
+const todayKey = () => S.keyOfLocal(new Date());
+
+// ---------- 다이얼 ----------
+const C=110, R=84;
+function pt(min,r){ const a=(min/1440)*2*Math.PI-Math.PI/2; return [C+r*Math.cos(a), C+r*Math.sin(a)]; }
+function arc(s,e,r){ if(e-s>=1440) e=s+1439.9; const [x1,y1]=pt(s,r),[x2,y2]=pt(e,r); const L=(e-s)>720?1:0;
+  return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${r} ${r} 0 ${L} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`; }
+function drawDial(k,nowMin){
+  const c=cfg(), col={shift:'var(--accent)',sleep:'var(--sleep)',nap:'var(--nap)'}, rr={shift:R+12,sleep:R-6,nap:R-6};
+  let s=`<svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg"><circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="var(--line)" stroke-width="1"/>`;
+  for(let h=0;h<24;h++){ const [x1,y1]=pt(h*60,R-1),[x2,y2]=pt(h*60,R+(h%6===0?5:2)); s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--muted)" stroke-width="${h%6===0?1.4:.7}"/>`; }
+  [[0,'0'],[360,'6'],[720,'12'],[1080,'18']].forEach(([m,l])=>{ const [x,y]=pt(m,R-20); s+=`<text x="${x}" y="${y}" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="10" text-anchor="middle" dominant-baseline="central">${l}</text>`; });
+  S.blocksFor(k,c).forEach(([a,b,t])=>{ s+=`<path d="${arc(a,b,rr[t])}" fill="none" stroke="${col[t]}" stroke-width="${t==='shift'?7:9}" stroke-linecap="round"/>`; });
+  S.itemsFor(k,c).forEach(it=>{ const [x,y]=pt(it.min,R); s+=`<circle cx="${x}" cy="${y}" r="2.2" fill="var(--fg)"/>`; });
+  const [nx,ny]=pt(nowMin,R+20);
+  s+=`<line x1="${C}" y1="${C}" x2="${nx}" y2="${ny}" stroke="var(--fg)" stroke-width="1.6" stroke-linecap="round"/><circle cx="${C}" cy="${C}" r="3.5" fill="var(--fg)"/>`;
+  s+=`<text x="${C}" y="${C+24}" fill="var(--fg)" font-family="IBM Plex Mono, monospace" font-size="15" font-weight="600" text-anchor="middle">${S.hm(nowMin)}</text></svg>`;
+  $('dial').innerHTML=s;
+  const tot=S.blocksFor(k,c).filter(b=>b[2]!=='shift').reduce((a,b)=>a+(b[1]-b[0]),0);
+  $('sleepTotal').textContent='오늘 계획 수면 약 '+(Math.round(tot/6)/10)+'시간 (보너스 포함)';
+}
+
+// ---------- 렌더 ----------
+function render(){
+  const now=new Date(), k=todayKey(), t=S.addDaysKey(k,1), y=S.addDaysKey(k,-1), c=cfg();
+  const nowMin=now.getHours()*60+now.getMinutes();
+  const tI=S.itemsFor(k,c), mI=S.itemsFor(t,c), yI=S.itemsFor(y,c), work=S.isWork(k,c);
+  $('dateLabel').textContent=k+' ('+WD[S.dowOf(k)]+')';
+  $('chips').innerHTML = work
+    ? `<span class="chip work">${S.isHolidayWork(k,c)?'휴일 근무 17:30':'평일 근무 20:30'}</span>`
+    : `<span class="chip off">퇴근일 · 쉬는 날</span><span class="chip">내일 ${S.isHolidayWork(t,c)?'휴일':'평일'} 근무</span>`;
+  $('dplus').textContent=Math.max(1,S.dayDiff('2026-10-01',k)+1);
+  const past=tI.filter(i=>i.min<=nowMin), cur=past.length?past[past.length-1]:yI[yI.length-1];
+  const nT=tI.find(i=>i.min>nowMin), nx=nT||mI[0];
+  $('curTime').textContent=S.hm(cur.min)+(past.length?'부터':' (어제)부터');
+  $('curTitle').textContent=cur.title; $('curDesc').textContent=cur.desc;
+  $('nextTitle').textContent=nx.title; $('nextAt').textContent=(nT?'':'내일 ')+S.hm(nx.min);
+  let d=((nT?nx.min:nx.min+1440)-nowMin)*60-now.getSeconds();
+  const h=Math.floor(d/3600), m=Math.floor((d%3600)/60), sc=d%60;
+  $('countdown').textContent=h>0?`${h}시간 ${pad(m)}분`:`${pad(m)}:${pad(sc)}`;
+  drawDial(k,nowMin);
+  $('sleepCard').hidden=work;
+  const sv=c.slept[k]||'some';
+  document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===sv)));
+  const li=(it,cl)=>`<li class="${cl}"><div class="tm mono">${S.hm(it.min)}</div><div><div class="tt">${it.title}</div><div class="td">${it.desc}</div></div></li>`;
+  let html=''; tI.forEach(it=>{ html+=li(it, it===cur?'current':(it.min<=nowMin?'past':'')); });
+  html+=`<li style="display:block;padding:0;border:0"><div class="dayhead">내일 · ${t.slice(5)} (${WD[S.dowOf(t)]}) ${S.isWork(t,c)?(S.isHolidayWork(t,c)?'휴일 근무':'평일 근무'):'퇴근일'}</div></li>`;
+  mI.forEach(it=>html+=li(it,'tomorrow'));
+  $('timeline').innerHTML=html;
+  if(document.activeElement!==$('todayType')) $('todayType').value=c.overrides[k]||'auto';
+  checkAlerts(nowMin,tI);
+}
+
+// ---------- 앱 안 팝업 ----------
+let audio=null;
+const shown=new Set(store.get('shown',[]).filter(x=>x.slice(0,10)>=S.addDaysKey(todayKey(),-1)));
+const queue=[];
+function beep(){ if(!audio) return; try{ const t0=audio.currentTime;
+  [0,.28,.56].forEach((o,i)=>{ const os=audio.createOscillator(), g=audio.createGain(); os.frequency.value=i===2?1046:880;
+    g.gain.setValueAtTime(.0001,t0+o); g.gain.exponentialRampToValueAtTime(.25,t0+o+.02); g.gain.exponentialRampToValueAtTime(.0001,t0+o+.22);
+    os.connect(g).connect(audio.destination); os.start(t0+o); os.stop(t0+o+.25); }); }catch(e){} }
+function showModal(it){ $('mTime').textContent=S.hm(it.min); $('mTitle').textContent=it.title; $('mDesc').textContent=it.desc;
+  $('modal').hidden=false; $('mOk').focus(); beep(); try{ navigator.vibrate && navigator.vibrate([300,150,300]); }catch(e){} }
+function pump(){ if($('modal').hidden && queue.length) showModal(queue.shift()); }
+function enqueue(it){ if(shown.has(it.key)) return; shown.add(it.key); store.set('shown',[...shown]); queue.push(it); pump(); }
+function checkAlerts(nm,items){ items.forEach(it=>{ if(it.min<=nm && nm-it.min<15) enqueue(it); }); }
+$('mOk').addEventListener('click',()=>{ $('modal').hidden=true; pump(); });
+(function(){ const nm=new Date().getHours()*60+new Date().getMinutes(); S.itemsFor(todayKey(),cfg()).forEach(it=>{ if(it.min<nm) shown.add(it.key); }); })();
+function unlockAudio(){ try{ audio=audio||new (window.AudioContext||window.webkitAudioContext)(); audio.resume(); }catch(e){} }
+$('enableBtn').addEventListener('click',()=>{ unlockAudio(); beep(); $('alertStatus').textContent='앱 안 알림음 켜짐'; $('alertStatus').className='status on'; });
+$('testBtn').addEventListener('click',()=>{ unlockAudio(); const n=new Date(); showModal({min:n.getHours()*60+n.getMinutes(),title:'팝업 미리보기',desc:'앱을 열어둔 동안 시간이 되면 이렇게 떠.'}); });
+
+// ---------- 설치 / 서비스워커 / 푸시 ----------
+let reg=null, deferred=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferred=e; $('installRow').hidden=false; });
+$('installBtn').addEventListener('click',async()=>{ if(!deferred) return; deferred.prompt(); await deferred.userChoice.catch(()=>{}); deferred=null; $('installRow').hidden=true; });
+window.addEventListener('appinstalled',()=>{ $('installRow').hidden=true; });
+
+const b64 = s => { const p='='.repeat((4-s.length%4)%4); const r=atob((s+p).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from([...r].map(c=>c.charCodeAt(0))); };
+async function api(body){ const r=await fetch(FN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||('HTTP '+r.status)); return j; }
+function setPush(state,msg){ const s=$('pushStatus'); s.textContent=msg; s.className='status'+(state==='on'?' on':state==='err'?' err':'');
+  $('pushBtn').hidden=state==='on'; $('pushTest').hidden=state!=='on'; $('pushOff').hidden=state!=='on'; }
+async function refreshPush(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){ setPush('err','이 브라우저는 잠금화면 알림을 지원하지 않아. 크롬으로 열어줘.'); return; }
+  const sub=reg && await reg.pushManager.getSubscription();
+  if(sub && Notification.permission==='granted'){ setPush('on','켜짐 · 앱을 닫아도 시간표 알림이 와'); }
+  else if(Notification.permission==='denied'){ setPush('err','알림이 차단돼 있어. 크롬 사이트 설정에서 알림을 허용해줘.'); }
+  else setPush('off','꺼짐 · 켜면 앱을 닫아도 시간표 알림이 와');
+}
+$('pushBtn').addEventListener('click',async()=>{
+  try{
+    setPush('off','켜는 중…');
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){ await refreshPush(); return; }
+    reg=reg||await navigator.serviceWorker.ready;
+    const sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64(VAPID)});
+    await api({action:'subscribe', sub:sub.toJSON(), ...cfg()});
+    store.set('endpoint', sub.endpoint);
+    setPush('on','켜짐 · 앱을 닫아도 시간표 알림이 와');
+  }catch(e){ setPush('err','켜지 못했어: '+e.message); }
+});
+$('pushTest').addEventListener('click',async()=>{
+  try{ const sub=await reg.pushManager.getSubscription(); const r=await api({action:'test',endpoint:sub.endpoint});
+    $('pushStatus').textContent = r.ok ? '테스트 알림 보냄 · 앱을 닫거나 화면을 끄면 알림창으로 떠' : '보내지 못했어: '+(r.msg||r.code);
+  }catch(e){ setPush('err','테스트 실패: '+e.message); }
+});
+$('pushOff').addEventListener('click',async()=>{
+  try{ const sub=await reg.pushManager.getSubscription(); if(sub){ await api({action:'unsubscribe',endpoint:sub.endpoint}).catch(()=>{}); await sub.unsubscribe(); } }catch(e){}
+  store.set('endpoint',null); refreshPush();
+});
+let syncT=null;
+function sync(){ clearTimeout(syncT); syncT=setTimeout(async()=>{
+  const ep=store.get('endpoint',null); if(!ep) return;
+  try{ await api({action:'settings',endpoint:ep,...cfg()}); $('syncNote').textContent='알림 시간도 바꿨어 ('+new Date().toTimeString().slice(0,5)+')'; }
+  catch(e){ $('syncNote').textContent='알림 서버에 반영 못 했어. 인터넷 연결 후 다시 바꿔줘.'; }
+},400); }
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(r=>{ reg=r; refreshPush(); }).catch(()=>refreshPush());
+  navigator.serviceWorker.addEventListener('message',e=>{
+    if(e.data?.type!=='ns-push') return; const p=e.data.payload||{};
+    const it={min:p.min??0,title:p.t||p.title,desc:p.d||p.body,key:p.key||('push@'+Date.now())};
+    if(String(it.key).startsWith('test')) { shown.delete(it.key); }
+    enqueue(it);
+  });
+} else refreshPush();
+
+// ---------- 설정 ----------
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{ const s=store.get('slept',{}); s[todayKey()]=b.dataset.v; store.set('slept',s); render(); sync(); }));
+$('baseDate').value=store.get('base',S.DEFAULT_BASE);
+$('baseDate').addEventListener('change',e=>{ if(e.target.value){ store.set('base',e.target.value); render(); sync(); } });
+$('todayType').addEventListener('change',e=>{ const o=store.get('overrides',{}); if(e.target.value==='auto') delete o[todayKey()]; else o[todayKey()]=e.target.value; store.set('overrides',o); render(); sync(); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') render(); });
+
+render(); setInterval(render,1000);
+</script>
+</body>
+</html>
