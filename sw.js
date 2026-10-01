@@ -1,5 +1,5 @@
-const CACHE = 'ns-v1';
-const SHELL = ['./', 'index.html', 'schedule.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'badge-96.png'];
+const CACHE = 'ns-v2';
+const SHELL = ['./', 'index.html', 'schedule.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'badge-96.png', 'tips.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -35,7 +35,10 @@ self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    for (const w of wins) { if ('focus' in w) return w.focus(); }
-    return self.clients.openWindow('./');
+    const isLetter = e.notification.data && e.notification.data.kind === 'letter';
+    for (const w of wins) {
+      if ('focus' in w) { if (isLetter) w.postMessage({ type: 'ns-push', payload: e.notification.data }); return w.focus(); }
+    }
+    return self.clients.openWindow(isLetter ? './#letter' : './');
   })());
 });

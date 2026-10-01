@@ -109,6 +109,35 @@ input[type="date"],select{font:inherit;font-size:14px;padding:7px 10px;border-ra
 .foot{font-size:12px;color:var(--muted);text-align:center}
 [hidden]{display:none!important}
 .status.err{color:var(--warn)}
+
+.letter{display:flex;flex-direction:column;gap:14px}
+.tip{display:flex;flex-direction:column;gap:6px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.tip .cat{font-size:12px;color:var(--accent);letter-spacing:.06em}
+.tip .txt{font-size:15px;line-height:1.55}
+.tip .row2{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.linkbtn{font:inherit;font-size:13px;background:none;border:0;color:var(--muted);cursor:pointer;padding:4px 0;text-decoration:underline;text-underline-offset:3px}
+.issue{display:flex;flex-direction:column;gap:6px}
+.issue .meta{font-size:12px;color:var(--muted)}
+.issue .ttl{font-size:18px;font-weight:700;line-height:1.35}
+.issue .sum{font-size:14px;color:var(--muted)}
+.issue .badge{display:inline-block;font-size:11px;font-weight:700;color:var(--accent-ink);background:var(--accent);border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:2px}
+.past{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.past button{font:inherit;text-align:left;width:100%;background:none;border:0;border-top:1px solid var(--line);color:var(--fg);padding:9px 0;cursor:pointer;display:flex;gap:10px}
+.past .n{font-family:var(--font-mono);color:var(--muted);font-size:13px;min-width:34px}
+.reader{position:fixed;inset:0;background:var(--bg);z-index:20;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.reader-in{max-width:620px;margin:0 auto;padding-inline:18px;padding-block:16px 60px}
+.reader-top{position:sticky;top:0;background:var(--bg);display:flex;justify-content:space-between;align-items:center;gap:10px;padding-block:10px;border-bottom:1px solid var(--line);z-index:1}
+.reader h1{font-size:24px;line-height:1.3;margin:18px 0 6px}
+.reader .meta{font-size:13px;color:var(--muted)}
+.md h3{font-size:18px;margin:28px 0 8px;padding-top:14px;border-top:1px solid var(--line)}
+.md h4{font-size:16px;margin:20px 0 6px;color:var(--fg)}
+.md p{margin:0 0 12px;line-height:1.75;max-width:65ch}
+.md ul{margin:0 0 12px;padding-left:20px;line-height:1.7}
+.md strong{color:var(--fg)}
+.md a{color:var(--accent)}
+.srcs{margin-top:28px;padding-top:14px;border-top:1px solid var(--line);font-size:13px}
+.srcs ol{padding-left:18px;display:flex;flex-direction:column;gap:6px;color:var(--muted)}
+.srcs a{color:var(--muted);word-break:break-word}
 </style>
 </head>
 <body>
@@ -136,6 +165,22 @@ input[type="date"],select{font:inherit;font-size:14px;padding:7px 10px;border-ra
       </div>
       <div class="countdown mono" id="countdown">--:--</div>
     </div>
+  </section>
+
+  <section class="card letter" id="letterCard">
+    <div class="tip">
+      <div class="row2"><span class="label">오늘의 조언</span><span class="cat" id="tipCat">수면</span></div>
+      <div class="txt" id="tipTxt">퇴근 후 잠은 "길게"보다 "어둡게".</div>
+      <div><button class="linkbtn" id="tipNext" type="button">다른 조언 보기</button></div>
+    </div>
+    <div class="issue" id="issueBox">
+      <div class="label">나이트 레터 · 매주 새로 발행</div>
+      <div class="meta" id="issueMeta">불러오는 중…</div>
+      <div class="ttl" id="issueTitle"></div>
+      <div class="sum" id="issueSum"></div>
+      <div><button class="btn" id="issueRead" type="button" hidden>읽기</button></div>
+    </div>
+    <ul class="past" id="pastList"></ul>
   </section>
 
   <section class="dialrow">
@@ -218,6 +263,16 @@ input[type="date"],select{font:inherit;font-size:14px;padding:7px 10px;border-ra
     <h3 id="mTitle">퇴근 준비</h3>
     <p id="mDesc"></p>
     <button class="btn" id="mOk" type="button">확인</button>
+  </div>
+</div>
+
+<div class="reader" id="reader" hidden role="dialog" aria-modal="true" aria-labelledby="rTitle">
+  <div class="reader-in">
+    <div class="reader-top"><span class="label" id="rIssue">나이트 레터</span><button class="btn ghost" id="rClose" type="button">닫기</button></div>
+    <h1 id="rTitle"></h1>
+    <div class="meta" id="rMeta"></div>
+    <div class="md" id="rBody"></div>
+    <div class="srcs" id="rSrc"></div>
   </div>
 </div>
 
@@ -355,6 +410,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').then(r=>{ reg=r; refreshPush(); }).catch(()=>refreshPush());
   navigator.serviceWorker.addEventListener('message',e=>{
     if(e.data?.type!=='ns-push') return; const p=e.data.payload||{};
+    if(p.kind==='letter'){ loadLetters().then(()=>openLetter(letters[0]?.issue)); return; }
     const it={min:p.min??0,title:p.t||p.title,desc:p.d||p.body,key:p.key||('push@'+Date.now())};
     if(String(it.key).startsWith('test')) { shown.delete(it.key); }
     enqueue(it);
@@ -367,6 +423,66 @@ $('baseDate').value=store.get('base',S.DEFAULT_BASE);
 $('baseDate').addEventListener('change',e=>{ if(e.target.value){ store.set('base',e.target.value); render(); sync(); } });
 $('todayType').addEventListener('change',e=>{ const o=store.get('overrides',{}); if(e.target.value==='auto') delete o[todayKey()]; else o[todayKey()]=e.target.value; store.set('overrides',o); render(); sync(); });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') render(); });
+
+
+// ---------- 오늘의 조언 ----------
+import { TIPS } from './tips.js';
+let tipIdx = ((S.dayDiff('2026-10-01', todayKey()) % TIPS.length) + TIPS.length) % TIPS.length;
+function showTip(){ const [c,t]=TIPS[tipIdx]; $('tipCat').textContent=c; $('tipTxt').textContent=t; }
+$('tipNext').addEventListener('click',()=>{ tipIdx=(tipIdx+1)%TIPS.length; showTip(); });
+showTip();
+
+// ---------- 나이트 레터 ----------
+const esc = t => t.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function inline(t){ return esc(t)
+  .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+  .replace(/(^|[^*])\*([^*]+?)\*/g,'$1<em>$2</em>')
+  .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>'); }
+function md(src){
+  const out=[]; let para=[], list=[];
+  const flushP=()=>{ if(para.length){ out.push('<p>'+inline(para.join(' '))+'</p>'); para=[]; } };
+  const flushL=()=>{ if(list.length){ out.push('<ul>'+list.map(x=>'<li>'+inline(x)+'</li>').join('')+'</ul>'); list=[]; } };
+  for(const raw of src.split(/\r?\n/)){
+    const l=raw.trim();
+    if(!l){ flushP(); flushL(); continue; }
+    let m;
+    if((m=l.match(/^###\s+(.*)/))){ flushP(); flushL(); out.push('<h4>'+inline(m[1])+'</h4>'); continue; }
+    if((m=l.match(/^##\s+(.*)/))){ flushP(); flushL(); out.push('<h3>'+inline(m[1])+'</h3>'); continue; }
+    if((m=l.match(/^[-*]\s+(.*)/))){ flushP(); list.push(m[1]); continue; }
+    flushL(); para.push(l);
+  }
+  flushP(); flushL(); return out.join('');
+}
+let letters = store.get('letters', []);
+const fmtDate = iso => { try{ const d=new Date(iso); return d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate(); }catch(e){ return ''; } };
+function renderLetters(){
+  if(!letters.length){ $('issueMeta').textContent='아직 발행된 레터가 없어'; return; }
+  const L=letters[0], seen=store.get('seenIssue',0);
+  $('issueMeta').innerHTML = esc(L.issue+'호 · '+fmtDate(L.published_at)) + (L.issue>seen?'<span class="badge">NEW</span>':'');
+  $('issueTitle').textContent=L.title; $('issueSum').textContent=L.summary; $('issueRead').hidden=false;
+  $('pastList').innerHTML = letters.slice(1,6).map(x=>`<li><button type="button" data-i="${x.issue}"><span class="n">${x.issue}호</span><span>${esc(x.title)}</span></button></li>`).join('');
+  $('pastList').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>openLetter(+b.dataset.i)));
+}
+function openLetter(issue){
+  const L=letters.find(x=>x.issue===issue)||letters[0]; if(!L) return;
+  $('rIssue').textContent='나이트 레터 '+L.issue+'호'; $('rTitle').textContent=L.title;
+  $('rMeta').textContent=fmtDate(L.published_at)+' 발행';
+  $('rBody').innerHTML=md(L.body_md||'');
+  const src=(L.sources||[]).filter(x=>x && /^https?:/.test(x.url));
+  $('rSrc').innerHTML = src.length ? '<div class="label">출처</div><ol>'+src.map(x=>`<li><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title||x.url)}</a></li>`).join('')+'</ol>' : '';
+  $('reader').hidden=false; $('reader').scrollTop=0; $('rClose').focus();
+  if(L.issue>store.get('seenIssue',0)){ store.set('seenIssue',L.issue); renderLetters(); }
+}
+$('issueRead').addEventListener('click',()=>openLetter(letters[0]?.issue));
+$('rClose').addEventListener('click',()=>{ $('reader').hidden=true; if(location.hash==='#letter') history.replaceState(null,'',location.pathname); });
+async function loadLetters(){
+  try{ const j=await api({action:'letters'}); if(Array.isArray(j.letters)){ letters=j.letters; store.set('letters',letters); } }
+  catch(e){ if(!letters.length) $('issueMeta').textContent='인터넷 연결 후 레터를 불러올 수 있어'; }
+  renderLetters();
+  if(location.hash==='#letter' && letters.length) openLetter(letters[0].issue);
+}
+renderLetters(); loadLetters();
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') loadLetters(); });
 
 render(); setInterval(render,1000);
 </script>
