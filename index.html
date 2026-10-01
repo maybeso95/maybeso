@@ -90,6 +90,17 @@ header h1{font-size:22px;font-weight:700;letter-spacing:-.01em}
 .seg.five{grid-template-columns:repeat(5,minmax(0,1fr))}
 .seg button{font:inherit;font-size:13px;padding:9px 4px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);cursor:pointer;line-height:1.3}
 .seg button[aria-pressed="true"]{border-color:var(--sleep);background:var(--sleep);color:#fff;font-weight:700}
+.hours{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.hours button{font:inherit;font-family:var(--font-mono);font-size:14px;padding:9px 0;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);cursor:pointer}
+.hours button[aria-pressed="true"]{background:var(--sleep);border-color:var(--sleep);color:#fff;font-weight:700}
+.timer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px;border-radius:12px;background:var(--surface-2)}
+.timer .big{font-size:20px;font-weight:600}
+.cutrow{display:flex;gap:10px;align-items:center;font-size:14px;cursor:pointer}
+.cutrow input{width:18px;height:18px;accent-color:var(--sleep)}
+.plan{border:1px solid var(--sleep);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.plan .pr{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;font-size:14px}
+.plan .pk{color:var(--muted);font-size:13px}
+.plan .why{font-size:13px;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
 .kss{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px}
 .kss button{font:inherit;font-family:var(--font-mono);font-size:14px;padding:8px 0;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);cursor:pointer}
 .kss button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
@@ -223,16 +234,21 @@ textarea{width:100%;min-height:110px;font-size:13px;line-height:1.5;resize:verti
       <div><button class="linkbtn" id="tipNext" type="button">다른 조언 보기</button></div>
     </section>
 
-    <section class="card" id="sleepCard" hidden>
+    <section class="card" id="shiftCard" hidden>
+      <div class="row"><h2>근무 중 잔 시간</h2><span class="hint" id="shiftFor"></span></div>
+      <div class="timer">
+        <div><div class="label" id="tmLabel">잠 타이머</div><div class="big mono" id="tmText">눕기 전에 누르기</div></div>
+        <div class="btnrow"><button class="btn small" id="tmStart" type="button">지금 눕기</button><button class="btn small" id="tmStop" type="button" hidden>일어났어</button><button class="linkbtn" id="tmCancel" type="button" hidden>취소</button></div>
+      </div>
       <div>
-        <div class="label">근무 중에 얼마나 잤어?</div>
-        <div class="hint">고르면 퇴근 후 기상 알림 시간이 바뀌어.</div>
+        <div class="hint" style="margin-bottom:6px">또는 잔 시간을 직접 골라 (합계)</div>
+        <div class="hours" id="hoursSeg" role="group" aria-label="근무 중 잔 시간">
+          <button type="button" data-h="0">0</button><button type="button" data-h="0.5">0.5</button><button type="button" data-h="1">1</button><button type="button" data-h="1.5">1.5</button><button type="button" data-h="2">2</button>
+          <button type="button" data-h="2.5">2.5</button><button type="button" data-h="3">3</button><button type="button" data-h="3.5">3.5</button><button type="button" data-h="4">4</button><button type="button" data-h="4.5">4.5+</button>
+        </div>
       </div>
-      <div class="seg" role="group" aria-label="근무 중 수면">
-        <button type="button" data-v="good">3시간 이상<br><span class="mono">→ 12:00 기상</span></button>
-        <button type="button" data-v="some">1~3시간<br><span class="mono">→ 13:00 기상</span></button>
-        <button type="button" data-v="none">거의 못 잠<br><span class="mono">→ 13:45 기상</span></button>
-      </div>
+      <label class="cutrow"><input type="checkbox" id="cutChk">호출로 중간에 깼어 (깊은 잠이 덜 들어가서 30분 덜 잔 걸로 계산)</label>
+      <div class="plan" id="planBox"></div>
     </section>
 
     <section class="card" id="cafCard">
@@ -326,7 +342,7 @@ textarea{width:100%;min-height:110px;font-size:13px;line-height:1.5;resize:verti
       <div id="reportBody" hidden>
         <div class="chartleg">
           <span><span class="sw" style="background:var(--c-main);width:12px;height:12px;border-radius:3px"></span>기록한 잠</span>
-          <span><span class="sw" style="background:var(--c-shift);width:12px;height:12px;border-radius:3px"></span>근무 중 잠 (선택값으로 추정)</span>
+          <span><span class="sw" style="background:var(--c-shift);width:12px;height:12px;border-radius:3px"></span>근무 중 잠 (기록 없으면 2시간 추정)</span>
         </div>
         <div class="chartwrap">
           <div class="chart" id="chart" role="img"></div>
@@ -524,7 +540,7 @@ function nextSleep(){
   for(const [dk,off] of [[k,0],[S.addDaysKey(k,1),1]]){
     for(const it of S.itemsFor(dk,c)){
       if(!['bonus','home','bed'].includes(it.id)) continue;
-      const [h,m]=S.SLEEP_STARTS[it.id]; const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+off,h,m);
+      const sm=it.min+S.SLEEP_OFFSET[it.id]; const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+off,Math.floor(sm/60),sm%60);
       if(d>now) return {d, label: it.id==='bonus'?'22시 보너스 잠':it.id==='home'?'퇴근 후 잠':'23시 밤잠'};
     }
   }
@@ -568,9 +584,7 @@ function render(){
   const h=Math.floor(d/3600), m=Math.floor((d%3600)/60), sc=d%60;
   $('countdown').textContent=h>0?`${h}시간 ${pad(m)}분`:`${pad(m)}:${pad(sc)}`;
   if(!$('tab-today').hidden) drawDial(k,nowMin);
-  $('sleepCard').hidden=work;
-  const sv=c.slept[k]||'some';
-  document.querySelectorAll('#sleepCard .seg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===sv)));
+  renderShift(work, nowMin);
   const mu=new Set(c.muted);
   const li=(it,cl)=>`<li class="${cl}${mu.has(it.id)?' muted-alert':''}"><div class="tm mono">${S.hm(it.min)}</div><div><div class="tt">${esc(it.title)}</div><div class="td">${esc(it.desc)}</div></div></li>`;
   let html=''; tI.forEach(it=>{ html+=li(it, it===cur?'current':(it.min<=nowMin?'past':'')); });
@@ -582,7 +596,48 @@ function render(){
   $('logDot').hidden = !!(store.get('log',{})[k]||{}).cond;
   checkAlerts(nowMin, S.alertItemsFor(k,c));
 }
-document.querySelectorAll('#sleepCard .seg button').forEach(b=>b.addEventListener('click',()=>{ const s=store.get('slept',{}); s[todayKey()]=b.dataset.v; store.set('slept',s); render(); sync(); }));
+// ---------- 근무 중 잠 기록 → 오늘 계획 최적화 ----------
+// 기록 대상 날짜: 근무일 저녁이면 내일(퇴근일), 퇴근일이면 오늘
+const shiftTarget = () => { const k=todayKey(); return S.isWork(k,cfg()) ? S.addDaysKey(k,1) : k; };
+function setShift(k, patch){ const all=store.get('slept',{}); const cur=all[k]; const base = (cur && typeof cur==='object') ? cur : {h:S.shiftSleep(k,cfg()).recorded?S.shiftSleep(k,cfg()).h:0, cut:false};
+  all[k]=Object.assign({},base,patch); store.set('slept',all); render(); sync(); if(!$('tab-log').hidden) renderLog(); }
+const durTxt = ms => { const m=Math.max(0,Math.round(ms/60000)); return (m>=60?Math.floor(m/60)+'시간 ':'')+(m%60)+'분'; };
+let shiftSig='';
+function renderShift(work, nowMin){
+  const show = !work || nowMin>=1200;
+  $('shiftCard').hidden=!show; if(!show) return;
+  const k=shiftTarget(), c=cfg(), P=S.offPlan(k,c), st=store.get('napStart',null);
+  // 타이머
+  $('tmStart').hidden=!!st; $('tmStop').hidden=!st; $('tmCancel').hidden=!st;
+  if(st){ const d=new Date(st); $('tmLabel').textContent=`${pad(d.getHours())}:${pad(d.getMinutes())}부터 자는 중`; $('tmText').textContent=durTxt(Date.now()-st); }
+  else { $('tmLabel').textContent='잠 타이머'; $('tmText').textContent = P.recorded ? '지금까지 '+S.fmtH(P.h) : '눕기 전에 누르기'; }
+  const sig=JSON.stringify([k,c.slept[k]||null,!!st]); if(sig===shiftSig) return; shiftSig=sig;
+  $('shiftFor').textContent = (k===todayKey()?'오늘 ':'')+md(k)+' 퇴근일 계획에 반영';
+  const hv = P.recorded ? Math.min(4.5,Math.round(P.h*2)/2) : null;
+  document.querySelectorAll('#hoursSeg button').forEach(b=>b.setAttribute('aria-pressed',String(hv!=null && +b.dataset.h===hv)));
+  $('cutChk').checked=P.cut;
+  const lvl = {good:['잘 잤어','s-ok'], some:['보통','s-warn'], low:['부족해','s-bad']}[P.level];
+  const exTxt = P.level==='low' ? '걷기 20~30분만 (고강도 쉬기)' : P.level==='good' ? '근력 운동 하기 좋은 날' : '평소대로';
+  $('planBox').innerHTML = `
+    <div class="row"><span class="label">${P.recorded?'기록에 맞춘 오늘 계획':'기록 전 · 기본 계획 (2시간 기준)'}</span><span class="status ${lvl[1]}">근무 중 잠 ${lvl[0]}</span></div>
+    <div class="pr"><span class="pk">퇴근 후 잠</span><span><b class="mono">10:00 ~ ${S.hm(P.wakeMin)}</b> · ${S.fmtH(P.postH)}</span></div>
+    <div class="pr"><span class="pk">낮까지 총 잠</span><span>근무 중 ${S.fmtH(P.e)} + 퇴근 후 ${S.fmtH(P.postH)} = <b>${S.fmtH(P.total)}</b></span></div>
+    <div class="pr"><span class="pk">운동</span><span>${exTxt}</span></div>
+    <div class="pr"><span class="pk">오늘 밤</span><span><b class="mono">${S.hm(P.bedMin)}</b> 취침${P.level==='low'?' (30분 일찍)':''} → 내일 07:30 기상</span></div>
+    ${P.level==='low'?'<div class="pr"><span class="pk">퇴근길</span><span>졸림 체크 필수. 운전이면 출발 전 15~20분 쪽잠</span></div>':''}
+    <div class="why">퇴근 후 잠은 "5시간 − 근무 중 잠"으로 정하고 2~4시간 사이로 맞춰. 4시간을 넘기면 그날 밤잠이 밀려서 다음 근무까지 리듬이 흔들리거든. 부족한 만큼은 오늘 밤에 일찍 자서 채워.</div>`;
+}
+document.querySelectorAll('#hoursSeg button').forEach(b=>b.addEventListener('click',()=>setShift(shiftTarget(),{h:+b.dataset.h})));
+$('cutChk').addEventListener('change',e=>setShift(shiftTarget(),{cut:e.target.checked}));
+$('tmStart').addEventListener('click',()=>{ store.set('napStart',Date.now()); shiftSig=''; render(); });
+$('tmCancel').addEventListener('click',()=>{ store.set('napStart',null); shiftSig=''; render(); });
+$('tmStop').addEventListener('click',()=>{
+  const st=store.get('napStart',null); if(!st) return;
+  const h=Math.round((Date.now()-st)/3600e3*4)/4;          // 15분 단위
+  const now=new Date(), k = now.getHours()>=12 ? S.addDaysKey(todayKey(),1) : todayKey();
+  const cur=S.shiftSleep(k,cfg()); store.set('napStart',null);
+  setShift(k,{h: Math.min(6,(cur.recorded?cur.h:0)+h)}); shiftSig='';
+});
 
 // ---------- 오늘의 조언 ----------
 let tipIdx = ((S.dayDiff('2026-10-01', todayKey()) % TIPS.length) + TIPS.length) % TIPS.length;
@@ -591,7 +646,6 @@ $('tipNext').addEventListener('click',()=>{ tipIdx=(tipIdx+1)%TIPS.length; showT
 showTip();
 
 // ---------- 기록 ----------
-const SHIFT_EST = {good:3.3, some:2, none:.5};
 const PR = {
   sleep:['① 쉬는 날 밤잠 사수','어젯밤 23시 전후에 자서 아침까지 잤어'],
   food:['② 새벽 식사 안 함','새벽 1~6시엔 식사 대신 가볍게만 먹었어'],
@@ -601,7 +655,7 @@ const PR = {
 const logAll = () => store.get('log',{});
 const logGet = k => logAll()[k]||{};
 function logSet(k,patch){ const L=logAll(); L[k]=Object.assign({},L[k]||{},patch); store.set('log',L); $('logSaved').textContent='저장됨 '+new Date().toTimeString().slice(0,5); }
-function planSleep(k){ const c=cfg(); if(S.isWork(k,c)) return 8.5; const w=S.T(S.WAKE[c.slept[k]||'some'][0]); return Math.round((w-600)/30)/2; }
+function planSleep(k){ const c=cfg(); if(S.isWork(k,c)) return 8.5; return S.offPlan(k,c).postH; }
 function renderLog(){
   const k=todayKey(), c=cfg(), work=S.isWork(k,c), L=logGet(k);
   $('logTitle').textContent=`오늘 기록 · ${md(k)} (${WD[S.dowOf(k)]})`;
@@ -610,7 +664,7 @@ function renderLog(){
   $('slVal').textContent = L.sleep!=null ? L.sleep.toFixed(1)+'h' : '–';
   $('slPlan').textContent = '계획 '+planSleep(k)+'h · 처음 누르면 계획값으로 시작';
   $('slShift').hidden = work;
-  if(!work) $('slShift').textContent='근무 중 잠: '+S.WAKE[c.slept[k]||'some'][1]+' (오늘 탭에서 고른 값)';
+  if(!work){ const ss=S.shiftSleep(k,c); $('slShift').textContent = ss.recorded ? `근무 중 잠: ${S.fmtH(ss.h)}${ss.cut?' (중간에 깸)':''} · 오늘 탭에서 기록함` : '근무 중 잠: 아직 기록 안 함 (오늘 탭에서 기록하면 계획이 맞춰져)'; }
   $('kssField').hidden = work;
   document.querySelectorAll('#kssSeg button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.v===L.kss)));
   $('kssWarn').hidden = !(L.kss>=7);
@@ -631,9 +685,10 @@ function renderReport(){
   const k=todayKey(), c=cfg(), L=logAll();
   const days=[...Array(14)].map((_,i)=>S.addDaysKey(k,i-13));
   const rows=days.map(d=>{ const x=L[d]||{}; const work=S.isWork(d,c);
-    const shift = (!work && x.sleep!=null) ? SHIFT_EST[c.slept[d]||'some'] : 0;
-    return {d, work, main:x.sleep, shift, cond:x.cond, kss:x.kss, p:x.p||{}}; });
-  const logged=rows.filter(r=>r.main!=null||r.cond!=null);
+    const ss = work ? null : S.shiftSleep(d,c);
+    const shift = (!work && (ss.recorded || x.sleep!=null)) ? ss.e : 0;
+    return {d, work, main:x.sleep, shift, rec: !!(ss&&ss.recorded), cond:x.cond, kss:x.kss, p:x.p||{}}; });
+  const logged=rows.filter(r=>r.main!=null||r.cond!=null||r.rec);
   $('reportRange').textContent=md(days[0])+' ~ '+md(days[13]);
   $('reportEmpty').hidden = logged.length>=1; $('reportBody').hidden = logged.length<1;
   if(!logged.length) return;
@@ -646,12 +701,12 @@ function renderReport(){
   [0,4,8,12].forEach(v=>{ s+=`<line x1="${l}" x2="${W-r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1" ${v?'stroke-dasharray="2 3"':''}/><text x="${l-6}" y="${y(v)}" fill="var(--muted)" font-size="9" font-family="Gulim, 굴림, Gowun Dodum, sans-serif" text-anchor="end" dominant-baseline="central">${v}h</text>`; });
   rows.forEach((rw,i)=>{
     const x=l+band*i+(band-bw)/2;
-    if(rw.main!=null){
-      const hm=(rw.main/max)*ch, hs=(rw.shift/max)*ch;
+    if(rw.main!=null || rw.shift>0){
+      const mv=rw.main||0, hm=(mv/max)*ch, hs=(rw.shift/max)*ch;
       if(hs>0){
-        s+=`<rect x="${x}" y="${y(rw.main)}" width="${bw}" height="${hm}" fill="var(--c-main)"/>`;
-        s+=`<path d="${roundTop(x, y(rw.main)-hs, bw, hs-2, 4)}" fill="var(--c-shift)"/>`;
-      } else s+=`<path d="${roundTop(x, y(rw.main), bw, hm, 4)}" fill="var(--c-main)"/>`;
+        if(hm>0) s+=`<rect x="${x}" y="${y(mv)}" width="${bw}" height="${hm}" fill="var(--c-main)"/>`;
+        s+=`<path d="${roundTop(x, y(mv)-hs, bw, hs-(hm>0?2:0), 4)}" fill="var(--c-shift)"/>`;
+      } else s+=`<path d="${roundTop(x, y(mv), bw, hm, 4)}" fill="var(--c-main)"/>`;
     }
     s+=`<text x="${l+band*i+band/2}" y="${H-6}" fill="${rw.d===k?'var(--fg)':'var(--muted)'}" font-size="9" font-weight="${rw.d===k?600:400}" font-family="Gulim, 굴림, Gowun Dodum, sans-serif" text-anchor="middle">${+rw.d.slice(8,10)}</text>`;
     s+=`<rect class="hit" data-i="${i}" x="${l+band*i}" y="${top}" width="${band}" height="${ch+bot}" fill="transparent" style="cursor:pointer"/>`;
@@ -665,7 +720,7 @@ function renderReport(){
   $('chart').querySelectorAll('.hit').forEach(h=>{
     const show=()=>{ const r=rows[+h.dataset.i]; const box=$('chart').getBoundingClientRect(), hb=h.getBoundingClientRect();
       tip.innerHTML=`<b>${md(r.d)} (${WD[S.dowOf(r.d)]}) · ${r.work?'근무일':'퇴근일'}</b><br>`+
-        (r.main!=null?`기록한 잠 ${r.main.toFixed(1)}h`+(r.shift?`<br>근무 중 잠 약 ${r.shift}h`:''):'잠 기록 없음')+
+        (r.main!=null?`기록한 잠 ${r.main.toFixed(1)}h`:'퇴근 후 잠 기록 없음')+(r.shift?`<br>근무 중 잠 ${r.rec?'':'약 '}${r.shift}h${r.rec?'':' (추정)'}`:'')+
         (r.cond?`<br>컨디션 ${r.cond}`:'')+(r.kss?`<br>퇴근길 졸림 ${r.kss}`:'');
       tip.hidden=false; const tw=tip.offsetWidth; let lx=hb.left-box.left+hb.width/2-tw/2; lx=Math.max(0,Math.min(box.width-tw,lx));
       tip.style.left=lx+'px'; tip.style.top='0px'; };
@@ -673,6 +728,7 @@ function renderReport(){
   });
 
   const last7=rows.slice(7), sl7=last7.filter(r=>r.main!=null).map(r=>r.main+r.shift);
+  const shiftRec=rows.filter(r=>r.rec).map(r=>r.shift);
   const offNights=rows.filter(r=>r.work && r.main!=null).map(r=>r.main);
   const kssHigh=rows.filter(r=>r.kss>=7).length, kssN=rows.filter(r=>r.kss).length;
   const cond7=avg(last7.filter(r=>r.cond).map(r=>r.cond));
@@ -681,7 +737,9 @@ function renderReport(){
     [f(avg(sl7))+(sl7.length?'h':''),'최근 7일 하루 수면 평균'],
     [f(avg(offNights))+(offNights.length?'h':''),'쉬는 날 밤잠 평균'],
     [f(cond7),'최근 7일 컨디션 평균'],
-    [kssN?`${kssHigh}/${kssN}`:'–','퇴근길 졸림 7 이상']
+    [kssN?`${kssHigh}/${kssN}`:'–','퇴근길 졸림 7 이상'],
+    [f(avg(shiftRec))+(shiftRec.length?'h':''),'근무 중 잠 평균 (기록한 날)'],
+    [shiftRec.length?`${shiftRec.filter(v=>v>=1).length}/${shiftRec.length}`:'–','근무 중 1시간 이상 잔 날']
   ].map(([v,kk])=>`<div class="stat"><div class="v mono">${v}</div><div class="k">${kk}</div></div>`).join('');
 
   const pr=['sleep','food','ex','light'].map(x=>{ const app=rows.filter(r=>(r.main!=null||r.cond!=null) && (x==='sleep'?r.work:x==='light'?true:!r.work)); return [x,app.filter(r=>r.p[x]).length,app.length]; });
@@ -692,8 +750,9 @@ function renderReport(){
   const hi=withC.filter(r=>r.main+r.shift>=7).map(r=>r.cond), lo=withC.filter(r=>r.main+r.shift<7).map(r=>r.cond);
   if(hi.length>=2 && lo.length>=2) ins.push(`7시간 이상 잔 날 컨디션 평균 ${avg(hi).toFixed(1)}, 덜 잔 날 ${avg(lo).toFixed(1)}.`+(avg(hi)-avg(lo)>=.5?' 잠이 컨디션에 바로 드러나는 편이야.':' 잠 시간 말고 다른 요인이 더 클 수도 있어.'));
   const offC=rows.filter(r=>!r.work && r.cond);
-  const g=offC.filter(r=>(c.slept[r.d]||'some')==='good').map(r=>r.cond), n=offC.filter(r=>(c.slept[r.d]||'some')==='none').map(r=>r.cond);
-  if(g.length>=2 && n.length>=2) ins.push(`근무 중 3시간 이상 잔 다음 날 컨디션 ${avg(g).toFixed(1)}, 거의 못 잔 날 ${avg(n).toFixed(1)}.`);
+  const g=offC.filter(r=>r.rec && r.shift>=3).map(r=>r.cond), n=offC.filter(r=>r.rec && r.shift<1).map(r=>r.cond);
+  if(g.length>=2 && n.length>=2) ins.push(`근무 중 3시간 이상 잔 날 컨디션 ${avg(g).toFixed(1)}, 1시간도 못 잔 날 ${avg(n).toFixed(1)}.`+(avg(g)-avg(n)>=.8?' 근무 중 잠이 너한테 꽤 중요해. 22시 잠 기회는 최대한 잡자.':''));
+  if(shiftRec.length>=4 && avg(shiftRec)<1) ins.push(`근무 중 잠이 평균 ${avg(shiftRec).toFixed(1)}시간이야. 앱이 퇴근 후 잠을 4시간으로 늘려서 계획하고 있어. 이게 계속되면 출근 전 보험 낮잠(20분)을 꼭 챙겨.`);
   if(offNights.length>=2 && avg(offNights)<7) ins.push(`쉬는 날 밤잠이 평균 ${avg(offNights).toFixed(1)}시간이야. 원칙 ①부터 다시 챙겨보자. 리듬의 기준점이야.`);
   if(kssHigh>=2) ins.push(`퇴근길 졸림 7 이상이 ${kssHigh}번 있었어. 출발 전 15~20분 쪽잠을 습관으로 만들어줘.`);
   const ex=pr.find(p=>p[0]==='ex'); if(ex[2]>=3 && ex[1]/ex[2]<.4) ins.push('쉬는 날 운동이 아직 적어. 걷기 20분부터 시작해도 충분해.');
@@ -775,7 +834,7 @@ $('allOn').addEventListener('click',()=>{ store.set('muted',[]); renderToggles()
 $('coreOnly').addEventListener('click',()=>{ store.set('muted',S.ALERT_TYPES.map(x=>x[0]).filter(id=>!S.CORE_ALERTS.includes(id))); renderToggles(); render(); sync(); });
 
 // ---------- 백업 ----------
-const BK_KEYS=['log','slept','overrides','base','muted','caf','seenIssue'];
+const BK_KEYS=['log','slept','overrides','base','muted','caf','seenIssue','napStart'];
 $('bkCopy').addEventListener('click',async()=>{
   const data={v:1,at:new Date().toISOString()}; BK_KEYS.forEach(k=>data[k]=store.get(k,null));
   const text='NSBACKUP:'+JSON.stringify(data);

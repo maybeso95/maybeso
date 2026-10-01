@@ -22,7 +22,31 @@ export function isHolidayWork(k,cfg){
   const w=dowOf(k); return w===0||w===6||HOL.has(k);
 }
 
-export const WAKE = {good:['12:00','3시간 이상'], some:['13:00','1~3시간'], none:['13:45','거의 못 잠']};
+// ---- 근무 중 잠 → 퇴근일 계획 최적화 ----
+// slept[퇴근일] = { h: 근무 중 잔 시간(시간), cut: 호출로 중간에 깼는지 }  (예전 값 'good'|'some'|'none'도 읽음)
+const LEGACY = { good:{h:3.5,cut:false}, some:{h:2,cut:false}, none:{h:0.5,cut:false} };
+export const DEFAULT_SHIFT_H = 2;
+export function shiftSleep(k,cfg){
+  const v=(cfg.slept||{})[k];
+  if(v==null) return { h:DEFAULT_SHIFT_H, cut:false, e:DEFAULT_SHIFT_H, recorded:false };
+  const o = typeof v==='string' ? (LEGACY[v]||LEGACY.some) : v;
+  const h = Math.max(0, Math.min(6, +o.h||0)), cut=!!o.cut;
+  // 중간에 끊긴 잠은 깊은 잠이 덜 들어가서 30분 덜 잔 것으로 계산
+  return { h, cut, e: Math.max(0, h-(cut?0.5:0)), recorded:true };
+}
+const q15 = m => Math.round(m/15)*15;
+export const fmtH = h => (Math.round(h*10)/10).toString().replace(/\.0$/,'')+'시간';
+// 퇴근 후 잠 = 5시간 - 근무 중 잠 (최소 2시간, 최대 4시간)
+//  → 근무 중 잠과 합쳐 하루 5시간 안팎을 채우되, 4시간을 넘겨 그날 밤잠을 망치지 않게
+export function offPlan(k,cfg){
+  const s=shiftSleep(k,cfg);
+  const postH=Math.max(2, Math.min(4, 5-s.e));
+  const wakeMin=600+q15(postH*60);
+  const level = s.e>=3 ? 'good' : s.e>=1 ? 'some' : 'low';
+  const bedMin = level==='low' ? 1350 : 1380;            // 거의 못 잤으면 30분 일찍 취침
+  return { ...s, postH:q15(postH*60)/60, wakeMin, bedMin, level,
+    total: s.e + q15(postH*60)/60 };
+}
 const WPRE = [
   ['wake','07:30','기상 · 햇빛','아침 햇빛 쬐기. 오늘 밤 22시에 졸리려면 지금 제대로 깨어 있어야 해.'],
   ['nap','12:40','보험 낮잠 20분 (선택)','근무 중 잠은 보너스라서 피곤하면 20분만. 길게 자면 22시 잠이 날아가.'],
@@ -45,17 +69,18 @@ const EVE = [
 const MORN = [
   ['bonuswake','01:45','기상 (잤다면)','밝은 조명, 찬물 세수, 물 한 모금. 호출 직후엔 1~2분 몸 깨우고 환자 확인부터. 커피는 반 잔까지만.'],
   ['cafcut2','03:00','카페인 마감 · 실수 주의 구간','03~05시는 각성도 바닥. 환자 확인, 조영제 병력, 검사 부위 한 번 더. 새벽엔 물·무가당 우유·견과류까지만.'],
-  ['water','06:00','물 줄이기 · 잠 기록','퇴근 후 화장실 때문에 깨지 않게 물 줄이기. 근무 중 몇 시간 잤는지 기억해두기.'],
+  ['water','06:00','물 줄이기 · 근무 중 잠 기록','퇴근 후 화장실 때문에 깨지 않게 물 줄이기. 앱 오늘 탭에서 근무 중 잔 시간을 기록하면 퇴근 후 수면과 오늘 계획이 거기에 맞춰 바뀌어.'],
   ['leave','07:50','퇴근 준비 · 선글라스','아침 햇빛 차단. 앱 기록 탭에서 지금 졸림 점수(1~9)를 체크해봐. 7 이상이면 운전 전에 15~20분 쪽잠.']
 ];
 function offItems(k,cfg){
-  const w = WAKE[(cfg.slept||{})[k]||'some'];
+  const P=offPlan(k,cfg), w=hm(P.wakeMin), why = P.recorded ? `근무 중 ${fmtH(P.h)}${P.cut?'(중간에 깸)':''} 잤으니` : '근무 중 잠 기록 전이라 2시간 기준으로';
+  const low=P.level==='low', good=P.level==='good';
   return [
-    ['home','09:30','귀가 → 바로 잘 준비','가볍게 먹고 씻고 폰 내려놓기. 완전 암막. 앱에서 근무 중 수면 길이를 골라두면 기상 알림이 맞춰져.'],
-    ['wakeoff',w[0],'기상 · 바로 햇빛','근무 중 수면 '+w[1]+' 기준 기상. 바깥 햇빛 20~30분으로 리듬을 낮으로 되돌리기. 오후 낮잠은 참기.'],
-    ['exercise','17:00','운동','근력 2회 + 유산소 1~2회 섞기. 자기 직전 2~3시간은 피하기.'],
-    ['nightprep','21:00','밤잠 사수 준비','약속은 22시 전 종료. 카페인, 격한 운동 금지.'],
-    ['bed','22:40','23시 취침','쉬는 날 밤잠이 건강의 기준점. 내일 07:30 기상.']
+    ['home','09:30','귀가 → 바로 잘 준비',`${why} 오늘은 10:00~${w}, ${fmtH(P.postH)} 자. 가볍게 먹고 씻고 폰 내려놓기. 완전 암막.`],
+    ['wakeoff',w,'기상 · 바로 햇빛', `${fmtH(P.postH)} 잤으면 충분해. 더 자면 오늘 밤잠이 밀려. 바깥 햇빛 20~30분으로 리듬을 낮으로 되돌리기.`+(low?' 오늘은 잠이 부족한 날이라 오후에 졸리면 15시 전까지 20분만 눈 붙여도 돼.':' 오후 낮잠은 참기.')],
+    ['exercise','17:00', low?'가벼운 운동':'운동', low ? '근무 중 거의 못 잔 날엔 고강도 운동은 쉬고 걷기 20~30분만. 회복이 우선이야.' : good ? '컨디션 좋은 날이야. 근력 운동 하기 좋은 날.' : '근력 2회 + 유산소 1~2회 섞기. 자기 직전 2~3시간은 피하기.'],
+    ['nightprep', low?'20:45':'21:00','밤잠 사수 준비', low ? '오늘은 30분 일찍 자는 날. 약속은 21시 전 종료, 카페인·격한 운동 금지.' : '약속은 22시 전 종료. 카페인, 격한 운동 금지.'],
+    ['bed', low?'22:10':'22:40', low?'22시 30분 취침':'23시 취침', low ? '어젯밤 부족했던 잠은 오늘 밤에 30분 더 자서 채우기. 내일 07:30 기상.' : '쉬는 날 밤잠이 건강의 기준점. 내일 07:30 기상.']
   ];
 }
 export function itemsFor(k,cfg){
@@ -64,11 +89,15 @@ export function itemsFor(k,cfg){
 }
 export function blocksFor(k,cfg){
   if(isWork(k,cfg)){
-    const h=isHolidayWork(k,cfg);
-    return [[0,450,'sleep'],[h?1050:1230,1440,'shift'],[1320,1440,'nap'], h?[780,810,'nap']:[760,780,'nap']];
+    const h=isHolidayWork(k,cfg), e=shiftSleep(addDaysKey(k,1),cfg).e;
+    const b=[[0,450,'sleep'],[h?1050:1230,1440,'shift'], h?[780,810,'nap']:[760,780,'nap']];
+    if(e>0) b.push([1320, Math.min(1440, 1320+e*60), 'nap']);   // 22시부터 잔 것으로 표시
+    return b;
   }
-  const w=T(WAKE[(cfg.slept||{})[k]||'some'][0]);
-  return [[0,480,'shift'],[0,120,'nap'],[600,w,'sleep'],[1380,1440,'sleep']];
+  const P=offPlan(k,cfg), after=Math.max(0,P.e*60-120);
+  const b=[[0,480,'shift'],[600,P.wakeMin,'sleep'],[P.bedMin,1440,'sleep']];
+  if(after>0) b.push([0,after,'nap']);
+  return b;
 }
 
 // 알림 종류 (설정에서 켜고 끄기)
@@ -76,9 +105,9 @@ export const ALERT_TYPES = [
   ['wake','아침 기상 · 햇빛'],['nap','보험 낮잠'],['cafcut','카페인 마감 (오후)'],['dinner','출근 전 저녁'],
   ['depart','출발 준비'],['shift','근무 시작'],['bonus','22시 잠 기회'],['bonuswake','01:45 기상'],
   ['cafcut2','03시 카페인 마감 · 실수 주의'],['water','06시 물 줄이기'],['leave','퇴근 준비 · 졸림 체크'],
-  ['home','귀가 → 잘 준비'],['wakeoff','퇴근 후 기상'],['exercise','운동'],['nightprep','밤잠 준비'],['bed','23시 취침']
+  ['home','귀가 → 잘 준비'],['wakeoff','퇴근 후 기상'],['exercise','운동'],['nightprep','밤잠 준비'],['bed','밤 취침 (23시, 못 잔 날 22:30)']
 ];
 export const CORE_ALERTS = ['cafcut','depart','bonus','cafcut2','leave','wakeoff','bed'];
 export function alertItemsFor(k,cfg){ const m=new Set(cfg.muted||[]); return itemsFor(k,cfg).filter(i=>!m.has(i.id)); }
-// 잠 시작 시각 (카페인 계산용): 알림 id → 실제로 눕는 시각
-export const SLEEP_STARTS = { nap:[12,40], bonus:[22,0], home:[10,0], bed:[23,0] };
+// 알림 → 실제로 눕는 시각까지 남은 분 (카페인 계산용)
+export const SLEEP_OFFSET = { bonus:15, home:30, bed:20 };
