@@ -129,6 +129,11 @@ header h1{font-size:var(--fs-xl);letter-spacing:-.01em}
 .plan .pr{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;font-size:var(--fs-m);align-items:baseline}
 .plan .pk{color:var(--muted);font-size:var(--fs-s)}
 .plan .big{font-family:var(--font-mono);font-size:var(--fs-l);color:var(--fg)}
+.rules{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:12px;background:var(--surface-2);font-size:var(--fs-s)}
+.rules div{display:grid;grid-template-columns:84px minmax(0,1fr);gap:8px}
+.rules .pk{color:var(--muted)}
+.holchip{display:inline-flex;align-items:center;gap:6px}
+.holchip button{font:inherit;background:none;border:0;color:var(--muted);cursor:pointer;padding:0 2px;font-size:15px;line-height:1}
 .plan details{border-top:1px dashed var(--line);padding-top:8px}
 .plan summary{cursor:pointer;font-size:var(--fs-s);color:var(--muted);list-style:none;min-height:32px;display:flex;align-items:center}
 .plan summary::before{content:"▸";margin-right:6px} .plan details[open] summary::before{content:"▾"}
@@ -280,8 +285,8 @@ textarea{width:100%;min-height:110px;font-size:var(--fs-s);line-height:1.5;resiz
       <div>
         <div class="hint" style="margin-bottom:6px">또는 잔 시간을 직접 골라 (합계)</div>
         <div class="hours" id="hoursSeg" role="group" aria-label="근무 중 잔 시간">
-          <button type="button" data-h="0">0</button><button type="button" data-h="0.5">0.5</button><button type="button" data-h="1">1</button><button type="button" data-h="1.5">1.5</button><button type="button" data-h="2">2</button>
-          <button type="button" data-h="2.5">2.5</button><button type="button" data-h="3">3</button><button type="button" data-h="3.5">3.5</button><button type="button" data-h="4">4</button><button type="button" data-h="4.5">4.5+</button>
+          <button type="button" data-h="0">0</button><button type="button" data-h="1">1</button><button type="button" data-h="2">2</button><button type="button" data-h="2.5">2.5</button><button type="button" data-h="3">3</button>
+          <button type="button" data-h="3.5">3.5</button><button type="button" data-h="4">4</button><button type="button" data-h="4.5">4.5</button><button type="button" data-h="5">5</button><button type="button" data-h="5.5">5.5+</button>
         </div>
       </div>
       <label class="cutrow"><input type="checkbox" id="cutChk">호출로 중간에 깼어 (깊은 잠이 덜 들어가서 30분 덜 잔 걸로 계산)</label>
@@ -448,13 +453,16 @@ textarea{width:100%;min-height:110px;font-size:var(--fs-s);line-height:1.5;resiz
         <label for="baseDate">기준 근무일 (근무 바뀌면 여기만 수정)</label>
         <input type="date" id="baseDate" value="2026-10-01">
       </div>
-      <div class="row">
-        <label for="todayType">오늘 근무 형태</label>
-        <select id="todayType">
-          <option value="auto">자동 (주말·공휴일 = 휴일근무)</option>
-          <option value="weekday">평일 근무 (20:30)</option>
-          <option value="holiday">휴일 근무 (17:30)</option>
-        </select>
+      <div class="rules">
+        <div><span class="pk">출근</span><span>평일 20:30 · 토·일·공휴일 17:30</span></div>
+        <div><span class="pk">퇴근</span><span>다음 날이 평일이면 08:00 · 토·일·공휴일이면 09:00</span></div>
+        <div><span class="pk">근무 중 수면</span><span>평일 근무 22:00~02:00 · 휴일 근무 20:00~02:00</span></div>
+      </div>
+      <div class="field" style="padding-top:12px">
+        <div class="q">공휴일 직접 지정</div>
+        <div class="hint">설날·추석처럼 달력에 없는 공휴일을 추가해. 출근·퇴근 시간이 자동으로 휴일 기준으로 바뀌어.</div>
+        <div class="btnrow"><input type="date" id="holDate" aria-label="공휴일 날짜"><button class="btn ghost small" id="holAdd" type="button">추가</button></div>
+        <div class="chips" id="holList"></div>
       </div>
       <div class="hint" id="syncNote">설정을 바꾸면 알림 시간도 같이 바뀌어.</div>
     </section>
@@ -608,8 +616,8 @@ function render(){
   const tI=S.itemsFor(k,c), mI=S.itemsFor(t,c), yI=S.itemsFor(y,c), work=S.isWork(k,c);
   $('dateLabel').textContent=md(k)+' ('+WD[S.dowOf(k)]+')';
   $('chips').innerHTML = work
-    ? `<span class="chip work">${S.isHolidayWork(k,c)?'휴일 근무 17:30':'평일 근무 20:30'}</span>`
-    : `<span class="chip off">퇴근일 · 쉬는 날</span><span class="chip">내일 ${S.isHolidayWork(t,c)?'휴일':'평일'} 근무</span>`;
+    ? (()=>{ const si=S.shiftInfo(k,c); return `<span class="chip work">${si.holiday?'휴일':'평일'} 근무 ${S.hm(si.start)}~${S.hm(si.end)}</span><span class="chip">수면 ${S.hm(si.sleepStart)}~02:00</span>`; })()
+    : (()=>{ const si=S.shiftInfo(t,c); return `<span class="chip off">퇴근일 · 쉬는 날</span><span class="chip">내일 ${S.hm(si.start)} 출근</span>`; })();
   $('chips').innerHTML += `<span class="chip mono">야간 근무 D+${Math.max(1,S.dayDiff('2026-10-01',k)+1)}</span>`;
   const past=tI.filter(i=>i.min<=nowMin), cur=past.length?past[past.length-1]:yI[yI.length-1];
   const nT=tI.find(i=>i.min>nowMin), nx=nT||mI[0];
@@ -631,7 +639,6 @@ function render(){
   html+=`<li style="display:block;padding:0;border:0"><div class="dayhead">내일 · ${md(t)} (${WD[S.dowOf(t)]}) ${S.isWork(t,c)?(S.isHolidayWork(t,c)?'휴일 근무':'평일 근무'):'퇴근일'}</div></li>`;
   mI.forEach(it=>html+=li(it,'tomorrow'));
   if($('timeline').dataset.h!==html){ $('timeline').innerHTML=html; $('timeline').dataset.h=html; }
-  if(document.activeElement!==$('todayType')) $('todayType').value=c.overrides[k]||'auto';
   renderCaf();
   $('logDot').hidden = !!(store.get('log',{})[k]||{}).cond;
   checkAlerts(nowMin, S.alertItemsFor(k,c));
@@ -650,7 +657,7 @@ function setShift(k, patch){ const all=store.get('slept',{}); const cur=all[k]; 
 const durTxt = ms => { const m=Math.max(0,Math.round(ms/60000)); return (m>=60?Math.floor(m/60)+'시간 ':'')+(m%60)+'분'; };
 let shiftSig='';
 function renderShift(work, nowMin){
-  const show = !work || nowMin>=1200;
+  const show = !work || nowMin >= S.shiftInfo(todayKey(),cfg()).sleepStart-60;
   $('shiftCard').hidden=!show; if(!show) return;
   const k=shiftTarget(), c=cfg(), P=S.offPlan(k,c), st=store.get('napStart',null);
   // 타이머
@@ -659,19 +666,20 @@ function renderShift(work, nowMin){
   else { $('tmLabel').textContent='잠 타이머'; $('tmText').textContent = P.recorded ? '지금까지 '+S.fmtH(P.h) : '눕기 전에 누르기'; }
   const sig=JSON.stringify([k,c.slept[k]||null,!!st]); if(sig===shiftSig) return; shiftSig=sig;
   $('shiftFor').textContent = (k===todayKey()?'오늘 ':'')+md(k)+' 퇴근일 계획에 반영';
-  const hv = P.recorded ? Math.min(4.5,Math.round(P.h*2)/2) : null;
+  const hv = P.recorded ? Math.min(5.5,Math.round(P.h*2)/2) : null;
   document.querySelectorAll('#hoursSeg button').forEach(b=>b.setAttribute('aria-pressed',String(hv!=null && +b.dataset.h===hv)));
   $('cutChk').checked=P.cut;
-  const lvl = {good:['잘 잤어','s-ok'], some:['보통','s-warn'], low:['부족해','s-bad']}[P.level];
+  const lvl = !P.recorded ? ['기록 전','s-none'] : {good:['잘 잤어','s-ok'], some:['보통','s-warn'], low:['부족해','s-bad']}[P.level];
   const exTxt = P.level==='low' ? '걷기 20~30분만 (고강도 쉬기)' : P.level==='good' ? '근력 운동 하기 좋은 날' : '평소대로';
   $('planBox').innerHTML = `
-    <div class="row"><span class="label">${P.recorded?'기록에 맞춘 오늘 계획':'기록 전 · 기본 계획 (2시간 기준)'}</span><span class="status ${lvl[1]}">근무 중 잠 ${lvl[0]}</span></div>
-    <div class="pr"><span class="pk">퇴근 후 잠</span><span><span class="big">10:00 ~ ${S.hm(P.wakeMin)}</span> <span class="muted">${S.fmtH(P.postH)}</span></span></div>
+    <div class="row"><span class="label">${P.recorded?'기록에 맞춘 오늘 계획':'기록 전 · 기본 계획 ('+S.fmtH(P.defaultH)+' 잔 걸로 가정)'}</span><span class="status ${lvl[1]}">${P.recorded?'근무 중 잠 ':''}${lvl[0]}</span></div>
+    <div class="pr"><span class="pk">퇴근</span><span>${S.hm(P.endMin)} → 집 도착 ${S.hm(P.homeMin)}</span></div>
+    <div class="pr"><span class="pk">퇴근 후 잠</span><span><span class="big">${S.hm(P.sleepStart)} ~ ${S.hm(P.wakeMin)}</span> <span class="muted">${S.fmtH(P.postH)}</span></span></div>
     <div class="pr"><span class="pk">낮까지 총 잠</span><span>근무 중 ${S.fmtH(P.e)} + 퇴근 후 ${S.fmtH(P.postH)} = <b>${S.fmtH(P.total)}</b></span></div>
     <div class="pr"><span class="pk">운동</span><span>${exTxt}</span></div>
     <div class="pr"><span class="pk">오늘 밤</span><span><span class="big">${S.hm(P.bedMin)}</span> 취침${P.level==='low'?' <span class="muted">(30분 일찍)</span>':''}<br><span class="muted">내일 07:30 기상</span></span></div>
     ${P.level==='low'?'<div class="pr"><span class="pk">퇴근길</span><span>졸림 체크 필수. 운전이면 출발 전 15~20분 쪽잠</span></div>':''}
-    <details><summary>왜 이렇게 짰어?</summary><p>퇴근 후 잠은 "5시간 − 근무 중 잠"으로 정하고 2~4시간 사이로 맞춰. 4시간을 넘기면 그날 밤잠이 밀려서 다음 근무까지 리듬이 흔들리거든. 부족한 만큼은 오늘 밤에 일찍 자서 채워.</p></details>`;
+    <details><summary>왜 이렇게 짰어?</summary><p>퇴근 후 잠은 "5.5시간 − 근무 중 잠"으로 정하고 1.5~4시간 사이로 맞춰. 01:40에 일어나서 그날 밤 23시까지 버티려면 짧게라도 수면 한 주기(1.5시간)는 자는 게 좋고, 4시간을 넘기면 그날 밤잠이 밀려서 다음 근무까지 리듬이 흔들려. 부족한 만큼은 그날 밤에 일찍 자서 채워.</p></details>`;
 }
 document.querySelectorAll('#hoursSeg button').forEach(b=>b.addEventListener('click',()=>setShift(shiftTarget(),{h:+b.dataset.h})));
 $('cutChk').addEventListener('change',e=>setShift(shiftTarget(),{cut:e.target.checked}));
@@ -680,7 +688,7 @@ $('tmCancel').addEventListener('click',()=>{ store.set('napStart',null); shiftSi
 $('tmStop').addEventListener('click',()=>{
   const st=store.get('napStart',null); if(!st) return;
   const h=Math.round((Date.now()-st)/3600e3*4)/4;          // 15분 단위
-  const now=new Date(), k = now.getHours()>=12 ? S.addDaysKey(todayKey(),1) : todayKey();
+  const now=new Date(), k = now.getHours()>=15 ? S.addDaysKey(todayKey(),1) : todayKey();
   const cur=S.shiftSleep(k,cfg()); store.set('napStart',null);
   setShift(k,{h: Math.min(6,(cur.recorded?cur.h:0)+h)}); shiftSig='';
 });
@@ -962,7 +970,12 @@ if('serviceWorker' in navigator){
 // ---------- 설정 ----------
 $('baseDate').value=store.get('base',S.DEFAULT_BASE);
 $('baseDate').addEventListener('change',e=>{ if(e.target.value){ store.set('base',e.target.value); render(); sync(); } });
-$('todayType').addEventListener('change',e=>{ const o=store.get('overrides',{}); if(e.target.value==='auto') delete o[todayKey()]; else o[todayKey()]=e.target.value; store.set('overrides',o); render(); sync(); });
+// 공휴일 직접 지정 (overrides[날짜]='holiday')
+function renderHol(){ const o=store.get('overrides',{}); const ks=Object.keys(o).filter(k=>o[k]==='holiday').sort();
+  $('holList').innerHTML = ks.length ? ks.map(k=>`<span class="chip holchip">${k.slice(0,4)}.${md(k)} (${WD[S.dowOf(k)]})<button type="button" data-k="${k}" aria-label="${k} 공휴일 지정 취소">×</button></span>`).join('') : '<span class="hint">추가한 공휴일 없음</span>';
+  $('holList').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ const o=store.get('overrides',{}); delete o[b.dataset.k]; store.set('overrides',o); renderHol(); render(); sync(); })); }
+$('holAdd').addEventListener('click',()=>{ const v=$('holDate').value; if(!v) return; const o=store.get('overrides',{}); o[v]='holiday'; store.set('overrides',o); $('holDate').value=''; renderHol(); render(); sync(); });
+renderHol();
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ render(); loadLetters(); } });
 
 // 이전 버전에서 켜둔 알림이 있으면 새 설정(알림 고르기)을 서버에 한 번 맞춰줌
