@@ -283,13 +283,18 @@ textarea{width:100%;min-height:110px;font-size:var(--fs-s);line-height:1.5;resiz
         <div class="btnrow"><button class="btn small" id="tmStart" type="button">지금 눕기</button><button class="btn small" id="tmStop" type="button" hidden>일어났어</button><button class="linkbtn" id="tmCancel" type="button" hidden>취소</button></div>
       </div>
       <div>
-        <div class="hint" style="margin-bottom:6px">또는 잔 시간을 직접 골라 (합계)</div>
+        <div class="hint" style="margin-bottom:6px">또는 누워 있던 시간을 직접 골라 (합계, 콜 받은 시간 포함)</div>
         <div class="hours" id="hoursSeg" role="group" aria-label="근무 중 잔 시간">
-          <button type="button" data-h="0">0</button><button type="button" data-h="1">1</button><button type="button" data-h="2">2</button><button type="button" data-h="2.5">2.5</button><button type="button" data-h="3">3</button>
-          <button type="button" data-h="3.5">3.5</button><button type="button" data-h="4">4</button><button type="button" data-h="4.5">4.5</button><button type="button" data-h="5">5</button><button type="button" data-h="5.5">5.5+</button>
+          <button type="button" data-h="2">2</button><button type="button" data-h="3">3</button><button type="button" data-h="4">4</button><button type="button" data-h="4.5">4.5</button><button type="button" data-h="5">5</button>
+          <button type="button" data-h="5.5">5.5</button><button type="button" data-h="6">6</button><button type="button" data-h="6.5">6.5</button><button type="button" data-h="7">7</button><button type="button" data-h="8">8+</button>
         </div>
       </div>
-      <label class="cutrow"><input type="checkbox" id="cutChk">호출로 중간에 깼어 (깊은 잠이 덜 들어가서 30분 덜 잔 걸로 계산)</label>
+      <div>
+        <div class="hint" style="margin-bottom:6px">콜로 깬 횟수 (한 번에 20분씩 덜 잔 걸로 계산)</div>
+        <div class="hours" id="callSeg" role="group" aria-label="콜로 깬 횟수">
+          <button type="button" data-c="0">0</button><button type="button" data-c="1">1</button><button type="button" data-c="2">2</button><button type="button" data-c="3">3</button><button type="button" data-c="4">4+</button>
+        </div>
+      </div>
       <div class="plan" id="planBox"></div>
     </section>
 
@@ -456,7 +461,7 @@ textarea{width:100%;min-height:110px;font-size:var(--fs-s);line-height:1.5;resiz
       <div class="rules">
         <div><span class="pk">출근</span><span>평일 20:30 · 토·일·공휴일 17:30</span></div>
         <div><span class="pk">퇴근</span><span>다음 날이 평일이면 08:00 · 토·일·공휴일이면 09:00</span></div>
-        <div><span class="pk">근무 중 수면</span><span>평일 근무 22:00~02:00 · 휴일 근무 20:00~02:00</span></div>
+        <div><span class="pk">근무 중 수면</span><span>평일 22:00~05:00 · 휴일 20:00~05:00 (02시부터 콜 대기)</span></div>
       </div>
       <div class="field" style="padding-top:12px">
         <div class="q">공휴일 직접 지정</div>
@@ -484,7 +489,7 @@ textarea{width:100%;min-height:110px;font-size:var(--fs-s);line-height:1.5;resiz
     <section class="card">
       <h2>지키는 원칙 4가지</h2>
       <ol class="principles">
-        <li><b>쉬는 날 밤잠은 사수한다</b><span>23시~07시. 약속은 22시 전에 끝내고, 퇴근 후 수면은 길어도 3.5~4시간에서 끊기.</span></li>
+        <li><b>쉬는 날 밤잠은 사수한다</b><span>24시~08시. 약속은 23시 전에 끝내고, 퇴근 후 잠은 앱이 정한 시간에서 끊기.</span></li>
         <li><b>새벽 1~6시에는 식사하지 않는다</b><span>출근 전 저녁을 든든하게. 새벽엔 물, 무가당 우유, 견과류 한 줌까지만.</span></li>
         <li><b>쉬는 날엔 운동한다</b><span>근력 2회 + 유산소 1~2회. 오후~저녁에, 자기 직전 2~3시간은 피하기.</span></li>
         <li><b>빛을 관리한다</b><span>퇴근길 선글라스, 쉬는 날 바깥 햇빛 20~30분, 낮잠 방은 완전 암막.</span></li>
@@ -585,7 +590,7 @@ function nextSleep(){
     for(const it of S.itemsFor(dk,c)){
       if(!['bonus','home','bed'].includes(it.id)) continue;
       const sm=it.min+S.SLEEP_OFFSET[it.id]; const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+off,Math.floor(sm/60),sm%60);
-      if(d>now) return {d, label: it.id==='bonus'?'22시 보너스 잠':it.id==='home'?'퇴근 후 잠':'23시 밤잠'};
+      if(d>now) return {d, label: it.id==='bonus'?'근무 중 수면':it.id==='home'?'퇴근 후 잠':'밤잠'};
     }
   }
   return null;
@@ -616,7 +621,7 @@ function render(){
   const tI=S.itemsFor(k,c), mI=S.itemsFor(t,c), yI=S.itemsFor(y,c), work=S.isWork(k,c);
   $('dateLabel').textContent=md(k)+' ('+WD[S.dowOf(k)]+')';
   $('chips').innerHTML = work
-    ? (()=>{ const si=S.shiftInfo(k,c); return `<span class="chip work">${si.holiday?'휴일':'평일'} 근무 ${S.hm(si.start)}~${S.hm(si.end)}</span><span class="chip">수면 ${S.hm(si.sleepStart)}~02:00</span>`; })()
+    ? (()=>{ const si=S.shiftInfo(k,c); return `<span class="chip work">${si.holiday?'휴일':'평일'} 근무 ${S.hm(si.start)}~${S.hm(si.end)}</span><span class="chip">수면 ${S.hm(si.sleepStart)}~05:00</span>`; })()
     : (()=>{ const si=S.shiftInfo(t,c); return `<span class="chip off">퇴근일 · 쉬는 날</span><span class="chip">내일 ${S.hm(si.start)} 출근</span>`; })();
   $('chips').innerHTML += `<span class="chip mono">야간 근무 D+${Math.max(1,S.dayDiff('2026-10-01',k)+1)}</span>`;
   const past=tI.filter(i=>i.min<=nowMin), cur=past.length?past[past.length-1]:yI[yI.length-1];
@@ -652,7 +657,7 @@ $('timeline').addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ 
 // ---------- 근무 중 잠 기록 → 오늘 계획 최적화 ----------
 // 기록 대상 날짜: 근무일 저녁이면 내일(퇴근일), 퇴근일이면 오늘
 const shiftTarget = () => { const k=todayKey(); return S.isWork(k,cfg()) ? S.addDaysKey(k,1) : k; };
-function setShift(k, patch){ const all=store.get('slept',{}); const cur=all[k]; const base = (cur && typeof cur==='object') ? cur : {h:S.shiftSleep(k,cfg()).recorded?S.shiftSleep(k,cfg()).h:0, cut:false};
+function setShift(k, patch){ const all=store.get('slept',{}); const cur=all[k]; const ss=S.shiftSleep(k,cfg()); const base = (cur && typeof cur==='object') ? {h:ss.h, calls:ss.calls} : {h:ss.recorded?ss.h:0, calls:ss.calls||0};
   all[k]=Object.assign({},base,patch); store.set('slept',all); render(); sync(); if(!$('tab-log').hidden) renderLog(); }
 const durTxt = ms => { const m=Math.max(0,Math.round(ms/60000)); return (m>=60?Math.floor(m/60)+'시간 ':'')+(m%60)+'분'; };
 let shiftSig='';
@@ -666,23 +671,23 @@ function renderShift(work, nowMin){
   else { $('tmLabel').textContent='잠 타이머'; $('tmText').textContent = P.recorded ? '지금까지 '+S.fmtH(P.h) : '눕기 전에 누르기'; }
   const sig=JSON.stringify([k,c.slept[k]||null,!!st]); if(sig===shiftSig) return; shiftSig=sig;
   $('shiftFor').textContent = (k===todayKey()?'오늘 ':'')+md(k)+' 퇴근일 계획에 반영';
-  const hv = P.recorded ? Math.min(5.5,Math.round(P.h*2)/2) : null;
+  const hv = P.recorded ? Math.min(8,Math.round(P.h*2)/2) : null;
   document.querySelectorAll('#hoursSeg button').forEach(b=>b.setAttribute('aria-pressed',String(hv!=null && +b.dataset.h===hv)));
-  $('cutChk').checked=P.cut;
+  document.querySelectorAll('#callSeg button').forEach(b=>b.setAttribute('aria-pressed',String(P.recorded && Math.min(4,P.calls)===+b.dataset.c)));
   const lvl = !P.recorded ? ['기록 전','s-none'] : {good:['잘 잤어','s-ok'], some:['보통','s-warn'], low:['부족해','s-bad']}[P.level];
-  const exTxt = P.level==='low' ? '걷기 20~30분만 (고강도 쉬기)' : P.level==='good' ? '근력 운동 하기 좋은 날' : '평소대로';
+  const exTxt = P.level==='low' ? '수영 쉬고 산책 20분' : '19:00 수영 40~50분 (오늘 운동은 이것 하나)';
   $('planBox').innerHTML = `
     <div class="row"><span class="label">${P.recorded?'기록에 맞춘 오늘 계획':'기록 전 · 기본 계획 ('+S.fmtH(P.defaultH)+' 잔 걸로 가정)'}</span><span class="status ${lvl[1]}">${P.recorded?'근무 중 잠 ':''}${lvl[0]}</span></div>
     <div class="pr"><span class="pk">퇴근</span><span>${S.hm(P.endMin)} → 집 도착 ${S.hm(P.homeMin)}</span></div>
     <div class="pr"><span class="pk">퇴근 후 잠</span><span><span class="big">${S.hm(P.sleepStart)} ~ ${S.hm(P.wakeMin)}</span> <span class="muted">${S.fmtH(P.postH)}</span></span></div>
-    <div class="pr"><span class="pk">낮까지 총 잠</span><span>근무 중 ${S.fmtH(P.e)} + 퇴근 후 ${S.fmtH(P.postH)} = <b>${S.fmtH(P.total)}</b></span></div>
+    <div class="pr"><span class="pk">낮까지 총 잠</span><span>근무 중 ${S.fmtH(P.e)}${P.calls?` <span class="muted">(콜 ${P.calls}번 빼고)</span>`:''} + 퇴근 후 ${S.fmtH(P.postH)} = <b>${S.fmtH(P.total)}</b></span></div>
     <div class="pr"><span class="pk">운동</span><span>${exTxt}</span></div>
-    <div class="pr"><span class="pk">오늘 밤</span><span><span class="big">${S.hm(P.bedMin)}</span> 취침${P.level==='low'?' <span class="muted">(30분 일찍)</span>':''}<br><span class="muted">내일 07:30 기상</span></span></div>
+    <div class="pr"><span class="pk">오늘 밤</span><span><span class="big">${S.bedLabel(P.bedMin)}</span> 취침${P.level==='low'?' <span class="muted">(30분 일찍)</span>':''}<br><span class="muted">내일 08:00 기상</span></span></div>
     ${P.level==='low'?'<div class="pr"><span class="pk">퇴근길</span><span>졸림 체크 필수. 운전이면 출발 전 15~20분 쪽잠</span></div>':''}
-    <details><summary>왜 이렇게 짰어?</summary><p>퇴근 후 잠은 "5.5시간 − 근무 중 잠"으로 정하고 1.5~4시간 사이로 맞춰. 01:40에 일어나서 그날 밤 23시까지 버티려면 짧게라도 수면 한 주기(1.5시간)는 자는 게 좋고, 4시간을 넘기면 그날 밤잠이 밀려서 다음 근무까지 리듬이 흔들려. 부족한 만큼은 그날 밤에 일찍 자서 채워.</p></details>`;
+    <details><summary>왜 이렇게 짰어?</summary><p>퇴근 후 잠은 "5.5시간 − 근무 중 잠"으로 정하고 1.5~4시간 사이로 맞춰. 근무 중에 잘 잔 날은 한 주기(1.5시간)만 자고 일어나야 그날 밤 24시에 잠이 와. 콜이 많아서 못 잔 날만 길게 자고, 그날 밤은 30분 일찍 자서 채워.</p></details>`;
 }
 document.querySelectorAll('#hoursSeg button').forEach(b=>b.addEventListener('click',()=>setShift(shiftTarget(),{h:+b.dataset.h})));
-$('cutChk').addEventListener('change',e=>setShift(shiftTarget(),{cut:e.target.checked}));
+document.querySelectorAll('#callSeg button').forEach(b=>b.addEventListener('click',()=>setShift(shiftTarget(),{calls:+b.dataset.c})));
 $('tmStart').addEventListener('click',()=>{ store.set('napStart',Date.now()); shiftSig=''; render(); });
 $('tmCancel').addEventListener('click',()=>{ store.set('napStart',null); shiftSig=''; render(); });
 $('tmStop').addEventListener('click',()=>{
@@ -701,7 +706,7 @@ showTip();
 
 // ---------- 기록 ----------
 const PR = {
-  sleep:['① 쉬는 날 밤잠 사수','어젯밤 23시 전후에 자서 아침까지 잤어'],
+  sleep:['① 쉬는 날 밤잠 사수','어젯밤 24시 전에 자서 08시까지 잤어'],
   food:['② 새벽 식사 안 함','새벽 1~6시엔 식사 대신 가볍게만 먹었어'],
   ex:['③ 운동','오늘 근력이나 유산소 운동을 했어'],
   light:['④ 빛 관리','퇴근길 선글라스 / 낮에 바깥 햇빛 20분 이상']
@@ -709,7 +714,7 @@ const PR = {
 const logAll = () => store.get('log',{});
 const logGet = k => logAll()[k]||{};
 function logSet(k,patch){ const L=logAll(); L[k]=Object.assign({},L[k]||{},patch); store.set('log',L); $('logSaved').textContent='저장됨 '+new Date().toTimeString().slice(0,5); }
-function planSleep(k){ const c=cfg(); if(S.isWork(k,c)) return 8.5; return S.offPlan(k,c).postH; }
+function planSleep(k){ const c=cfg(); if(S.isWork(k,c)) return 8; return S.offPlan(k,c).postH; }
 function renderLog(){
   const k=todayKey(), c=cfg(), work=S.isWork(k,c), L=logGet(k);
   $('logTitle').textContent=`오늘 기록 · ${md(k)} (${WD[S.dowOf(k)]})`;
@@ -718,7 +723,7 @@ function renderLog(){
   $('slVal').textContent = L.sleep!=null ? L.sleep.toFixed(1)+'h' : '–';
   $('slPlan').textContent = '계획 '+planSleep(k)+'h · 처음 누르면 계획값으로 시작';
   $('slShift').hidden = work;
-  if(!work){ const ss=S.shiftSleep(k,c); $('slShift').textContent = ss.recorded ? `근무 중 잠: ${S.fmtH(ss.h)}${ss.cut?' (중간에 깸)':''} · 오늘 탭에서 기록함` : '근무 중 잠: 아직 기록 안 함 (오늘 탭에서 기록하면 계획이 맞춰져)'; }
+  if(!work){ const ss=S.shiftSleep(k,c); $('slShift').textContent = ss.recorded ? `근무 중 잠: ${S.fmtH(ss.h)}${ss.calls?` · 콜 ${ss.calls}번`:''} · 오늘 탭에서 기록함` : '근무 중 잠: 아직 기록 안 함 (오늘 탭에서 기록하면 계획이 맞춰져)'; }
   $('kssField').hidden = work;
   document.querySelectorAll('#kssSeg button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.v===L.kss)));
   $('kssWarn').hidden = !(L.kss>=7);
@@ -793,7 +798,7 @@ function renderReport(){
     [f(cond7),'최근 7일 컨디션 평균'],
     [kssN?`${kssHigh}/${kssN}`:'–','퇴근길 졸림 7 이상'],
     [f(avg(shiftRec))+(shiftRec.length?'h':''),'근무 중 잠 평균 (기록한 날)'],
-    [shiftRec.length?`${shiftRec.filter(v=>v>=1).length}/${shiftRec.length}`:'–','근무 중 1시간 이상 잔 날']
+    [shiftRec.length?`${shiftRec.filter(v=>v>=4.5).length}/${shiftRec.length}`:'–','근무 중 4.5시간 이상 잔 날']
   ].map(([v,kk])=>`<div class="stat"><div class="v mono">${v}</div><div class="k">${kk}</div></div>`).join('');
 
   const pr=['sleep','food','ex','light'].map(x=>{ const app=rows.filter(r=>(r.main!=null||r.cond!=null) && (x==='sleep'?r.work:x==='light'?true:!r.work)); return [x,app.filter(r=>r.p[x]).length,app.length]; });
@@ -804,9 +809,9 @@ function renderReport(){
   const hi=withC.filter(r=>r.main+r.shift>=7).map(r=>r.cond), lo=withC.filter(r=>r.main+r.shift<7).map(r=>r.cond);
   if(hi.length>=2 && lo.length>=2) ins.push(`7시간 이상 잔 날 컨디션 평균 ${avg(hi).toFixed(1)}, 덜 잔 날 ${avg(lo).toFixed(1)}.`+(avg(hi)-avg(lo)>=.5?' 잠이 컨디션에 바로 드러나는 편이야.':' 잠 시간 말고 다른 요인이 더 클 수도 있어.'));
   const offC=rows.filter(r=>!r.work && r.cond);
-  const g=offC.filter(r=>r.rec && r.shift>=3).map(r=>r.cond), n=offC.filter(r=>r.rec && r.shift<1).map(r=>r.cond);
-  if(g.length>=2 && n.length>=2) ins.push(`근무 중 3시간 이상 잔 날 컨디션 ${avg(g).toFixed(1)}, 1시간도 못 잔 날 ${avg(n).toFixed(1)}.`+(avg(g)-avg(n)>=.8?' 근무 중 잠이 너한테 꽤 중요해. 22시 잠 기회는 최대한 잡자.':''));
-  if(shiftRec.length>=4 && avg(shiftRec)<1) ins.push(`근무 중 잠이 평균 ${avg(shiftRec).toFixed(1)}시간이야. 앱이 퇴근 후 잠을 4시간으로 늘려서 계획하고 있어. 이게 계속되면 출근 전 보험 낮잠(20분)을 꼭 챙겨.`);
+  const g=offC.filter(r=>r.rec && r.shift>=4.5).map(r=>r.cond), n=offC.filter(r=>r.rec && r.shift<2.5).map(r=>r.cond);
+  if(g.length>=2 && n.length>=2) ins.push(`근무 중 4.5시간 이상 잔 날 컨디션 ${avg(g).toFixed(1)}, 콜이 많아 2.5시간도 못 잔 날 ${avg(n).toFixed(1)}.`+(avg(g)-avg(n)>=.8?' 근무 중 잠이 너한테 꽤 중요해. 수면 시작 시간에는 최대한 눕자.':''));
+  if(shiftRec.length>=4 && avg(shiftRec)<3) ins.push(`근무 중 잠이 평균 ${avg(shiftRec).toFixed(1)}시간이야. 콜이 많은 편이라 앱이 퇴근 후 잠을 길게 잡고 있어. 이게 계속되면 근무날 낮잠 20분을 꼭 챙겨.`);
   if(offNights.length>=2 && avg(offNights)<7) ins.push(`쉬는 날 밤잠이 평균 ${avg(offNights).toFixed(1)}시간이야. 원칙 ①부터 다시 챙겨보자. 리듬의 기준점이야.`);
   if(kssHigh>=2) ins.push(`퇴근길 졸림 7 이상이 ${kssHigh}번 있었어. 출발 전 15~20분 쪽잠을 습관으로 만들어줘.`);
   const ex=pr.find(p=>p[0]==='ex'); if(ex[2]>=3 && ex[1]/ex[2]<.4) ins.push('쉬는 날 운동이 아직 적어. 걷기 20분부터 시작해도 충분해.');

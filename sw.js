@@ -1,4 +1,4 @@
-const CACHE = 'ns-v7';
+const CACHE = 'ns-v8';
 const SHELL = ['./', 'index.html', 'schedule.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'badge-96.png', 'tips.js'];
 
 self.addEventListener('install', e => {
